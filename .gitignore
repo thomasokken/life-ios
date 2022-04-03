@@ -1,0 +1,11 @@
+# /Life.xcodeproj/
+/Life.xcodeproj/*.mode1v3
+/Life.xcodeproj/*.pbxuser
+/Life.xcodeproj/xcuserdata
+
+# /Life.xcodeproj/project.xcworkspace/
+/Life.xcodeproj/project.xcworkspace/xcuserdata
+
+# /Life.xcodeproj/project.xcworkspace/xcshareddata/
+/Life.xcodeproj/project.xcworkspace/xcshareddata/*.xccheckout
+/Life.xcodeproj/project.xcworkspace/xcshareddata/*.xcscmblueprint
