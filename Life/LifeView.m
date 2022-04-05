@@ -112,7 +112,7 @@ static float offset_x, offset_y;
     [self addGestureRecognizer:pinch];
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
     [self addGestureRecognizer:pan];
-    [self performSelector:@selector(worker) withObject:nil afterDelay:pow(2, -delay)];
+    [self performSelectorInBackground:@selector(worker) withObject:nil];
 }
 
 - (void) handleTap:(UITapGestureRecognizer *)recog {
@@ -166,6 +166,7 @@ static float offset_x, offset_y;
 }
 
 - (void) worker {
+    moar:;
     int index = 0;
     int aboveindex = -stride;
     int belowindex = stride;
@@ -295,8 +296,11 @@ static float offset_x, offset_y;
         repeats = PATIENCE;
 
     done:
-    [self setNeedsDisplay];
-    [self performSelector:@selector(worker) withObject:nil afterDelay:pow(2, -delay)];
+    [self performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:NO];
+    int64_t d = 1000000000 * pow(2, -delay);
+    struct timespec ts = { d / 1000000000, d % 1000000000 };
+    nanosleep(&ts, NULL);
+    goto moar;
 }
 
 @end
