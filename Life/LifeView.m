@@ -13,8 +13,6 @@
 
 @synthesize speedSlider;
 
-#define SCALE 2
-
 static unsigned short crc16[] = {
     0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
     0xC601, 0x06C0, 0x0780, 0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440,
@@ -61,18 +59,21 @@ static int width = 0, height = 0, stride;
 static unsigned int history[HISTORY];
 static int repeats;
 static float delay = 8;
+static int pixelScale = 2;
+static float zoom = 1;
+static float offset_x = 0, offset_y = 0;
 
 - (BOOL) sizeChanged {
-    int w = self.bounds.size.width / SCALE;
-    int h = self.bounds.size.height / SCALE;
+    int w = self.bounds.size.width / pixelScale;
+    int h = self.bounds.size.height / pixelScale;
     return w != width || h != height;
 }
 
 - (void) restart {
     int size = stride * height;
     if ([self sizeChanged]) {
-        width = self.bounds.size.width / SCALE;
-        height = self.bounds.size.height / SCALE;
+        width = self.bounds.size.width / pixelScale;
+        height = self.bounds.size.height / pixelScale;
         free(bits1);
         free(bits2);
         stride = (width + 31) >> 5;
@@ -102,6 +103,13 @@ static float delay = 8;
     speedSlider.hidden = YES;
     UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
     [self addGestureRecognizer:recog];
+    recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleDoubleTap:)];
+    recog.numberOfTapsRequired = 2;
+    [self addGestureRecognizer:recog];
+    UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
+    [self addGestureRecognizer:pinch];
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    [self addGestureRecognizer:pan];
     [self performSelector:@selector(worker) withObject:nil afterDelay:pow(2, -delay)];
 }
 
@@ -109,9 +117,35 @@ static float delay = 8;
     speedSlider.hidden = !speedSlider.isHidden;
 }
 
+- (void) handleDoubleTap:(UITapGestureRecognizer *)recog {
+    zoom = 2;
+    offset_x = self.bounds.size.width / (zoom * pixelScale);
+    offset_y = self.bounds.size.height / (zoom * pixelScale);
+    [self setNeedsDisplay];
+}
+
+- (void) handlePinch:(UIPinchGestureRecognizer *)pinch {
+    if (pinch.state == UIGestureRecognizerStateChanged) {
+        float xcoff = offset_x - self.bounds.size.width / (zoom * pixelScale);
+        float ycoff = offset_y - self.bounds.size.height / (zoom * pixelScale);
+        zoom *= pinch.scale;
+        if (zoom < 1)
+            zoom = 1;
+        else if (zoom > 16)
+            zoom = 16;
+        offset_x = xcoff + self.bounds.size.width / (zoom * pixelScale);
+        offset_y = ycoff + self.bounds.size.height / (zoom * pixelScale);
+    }
+}
+
+- (void) handlePan:(UIPanGestureRecognizer *)pan {
+
+}
+
 - (void) drawRect:(CGRect)rect {
     CGContextRef myContext = UIGraphicsGetCurrentContext();
-    CGContextScaleCTM(myContext, SCALE, SCALE);
+    CGContextTranslateCTM(myContext, offset_x, offset_y);
+    CGContextScaleCTM(myContext, zoom * pixelScale, zoom * pixelScale);
     CGContextSetRGBFillColor(myContext, 1.0, 1.0, 1.0, 1.0);
     CGContextFillRect(myContext, [self bounds]);
     CGContextSetRGBFillColor(myContext, 0.0, 0.0, 0.0, 1.0);
@@ -143,7 +177,7 @@ static float delay = 8;
         [self restart];
         goto done;
     }
-    
+
     for (int y = 0; y < height; y++) {
         bool notattop = y != 0;
         bool notatbottom = y != height - 1;
@@ -219,7 +253,7 @@ static float delay = 8;
             if (x == stride - 1)
                 r &= rightedgemask;
             *((uint32_t *) (bits2 + index)) = r;
-            
+
             for (int i = 0; i < 4; i++) {
                 crc = crc >> 8 ^ crc16[crc & 0xFF ^ r & 0xFF];
                 r >>= 8;
@@ -234,7 +268,7 @@ static float delay = 8;
     uint32_t *temp = bits1;
     bits1 = bits2;
     bits2 = temp;
-    
+
     /* I use 16-bit CRCs to detect loops.
      * Finding a matching CRC is not an absolute guarantee that a loop
      * is occurring; for this reason, I wait until I detect PATIENCE
