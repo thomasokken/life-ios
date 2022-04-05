@@ -11,8 +11,9 @@
 
 @implementation LifeView
 
+@synthesize speedSlider;
+
 #define SCALE 2
-#define DELAY 0.01
 
 static unsigned short crc16[] = {
     0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
@@ -59,19 +60,22 @@ static uint32_t *bits1 = NULL, *bits2 = NULL;
 static int width = 0, height = 0, stride;
 static unsigned int history[HISTORY];
 static int repeats;
+static float delay = 8;
 
 - (void) restart {
-    if (self.bounds.size.width != width || self.bounds.size.height != height) {
-        width = self.bounds.size.width / SCALE;
-        height = self.bounds.size.height / SCALE;
+    int size = stride * height;
+    int w = self.bounds.size.width / SCALE;
+    int h = self.bounds.size.height / SCALE;
+    if (w != width || h != height) {
+        width = w;
+        height = h;
         free(bits1);
         free(bits2);
         stride = (width + 31) >> 5;
-        int size = stride * height;
+        size = stride * height;
         bits1 = (uint32_t *) malloc(size * 4);
         bits2 = (uint32_t *) malloc(size * 4);
     }
-    int size = stride * height;
     for (int i = 0; i < size; i++) {
         bits1[i] = (uint32_t) (((random() & 255) << 24)
                     | ((random() & 255) << 16)
@@ -82,11 +86,23 @@ static int repeats;
     memset(history, 0, HISTORY * sizeof(unsigned int));
 }
 
+- (IBAction) speedSliderUpdated {
+    delay = [speedSlider value];
+}
+
 - (void) awakeFromNib {
     [super awakeFromNib];
     [self restart];
     [self setNeedsDisplay];
-    [self performSelector:@selector(worker) withObject:nil afterDelay:DELAY];
+    [speedSlider setValue:delay];
+    speedSlider.hidden = YES;
+    UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
+    [self addGestureRecognizer:recog];
+    [self performSelector:@selector(worker) withObject:nil afterDelay:pow(2, -delay)];
+}
+
+- (void) handleTap:(UITapGestureRecognizer *)recog {
+    speedSlider.hidden = !speedSlider.isHidden;
 }
 
 - (void) drawRect:(CGRect)rect {
@@ -118,9 +134,11 @@ static int repeats;
     int belowindex = stride;
     uint32_t rightedgemask = 0xffffffff >> (31 - (width - 1 & 31));
     int crc = 0;
-    
-    if (repeats == 0)
+
+    if (repeats == 0 || self.bounds.size.width / SCALE != width || self.bounds.size.height / SCALE != height) {
         [self restart];
+        goto done;
+    }
     
     for (int y = 0; y < height; y++) {
         bool notattop = y != 0;
@@ -239,8 +257,9 @@ static int repeats;
     else
         repeats = PATIENCE;
 
+    done:
     [self setNeedsDisplay];
-    [self performSelector:@selector(worker) withObject:nil afterDelay:DELAY];
+    [self performSelector:@selector(worker) withObject:nil afterDelay:pow(2, -delay)];
 }
 
 @end

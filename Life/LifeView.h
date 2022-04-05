@@ -11,11 +11,14 @@
 #import <UIKit/UIKit.h>
 
 @interface LifeView : UIView {
-    // We don't need no UI controls
+    UISlider *speedSlider;
 }
+
+@property (nonatomic, retain) IBOutlet UISlider *speedSlider;
 
 - (void) awakeFromNib;
 - (void) drawRect:(CGRect)rect;
+- (IBAction) speedSliderUpdated;
 
 @end
 
