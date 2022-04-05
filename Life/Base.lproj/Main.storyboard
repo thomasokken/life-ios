@@ -23,10 +23,18 @@
                                     <action selector="speedSliderUpdated" destination="8bC-Xf-vdC" eventType="valueChanged" id="iT5-qh-p9p"/>
                                 </connections>
                             </slider>
+                            <slider opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="1" minValue="0.0" maxValue="16" translatesAutoresizingMaskIntoConstraints="NO" id="haO-xX-Hvg">
+                                <rect key="frame" x="20" y="794" width="376" height="30"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
+                                <connections>
+                                    <action selector="scaleSliderUpdated" destination="8bC-Xf-vdC" eventType="valueChanged" id="sbS-g5-Qqh"/>
+                                </connections>
+                            </slider>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <connections>
+                            <outlet property="scaleSlider" destination="haO-xX-Hvg" id="Axp-1A-uCl"/>
                             <outlet property="speedSlider" destination="OKJ-ZI-EwV" id="dkS-eZ-5dQ"/>
                         </connections>
                     </view>

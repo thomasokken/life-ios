@@ -11,6 +11,7 @@
 
 @implementation LifeView
 
+@synthesize scaleSlider;
 @synthesize speedSlider;
 
 static unsigned short crc16[] = {
@@ -59,7 +60,7 @@ static int width = 0, height = 0, stride;
 static unsigned int history[HISTORY];
 static int repeats;
 static float delay = 8;
-static int pixelScale = 2;
+static double pixelScale = 2;
 static float zoom = 1;
 static float offset_x, offset_y, offset_x_orig, offset_y_orig;
 
@@ -93,15 +94,30 @@ static float offset_x, offset_y, offset_x_orig, offset_y_orig;
     memset(history, 0, HISTORY * sizeof(unsigned int));
 }
 
+- (IBAction) scaleSliderUpdated {
+    int s = (int) (scaleSlider.value + 0.5);
+    scaleSlider.value = s;
+    pixelScale = (1 << s) / [[UIScreen mainScreen] scale];
+}
+
 - (IBAction) speedSliderUpdated {
     delay = [speedSlider value];
 }
 
 - (void) awakeFromNib {
     [super awakeFromNib];
+    int n = 0, b = 1, s = (int) [[UIScreen mainScreen] scale];
+    while (b < s) {
+        b <<= 1;
+        n++;
+    }
+    scaleSlider.maximumValue = n + 3;
+    scaleSlider.value = n + 1;
+    pixelScale = (1 << ((int) scaleSlider.value)) / [[UIScreen mainScreen] scale];
     [self restart];
     [self setNeedsDisplay];
     [speedSlider setValue:delay];
+    scaleSlider.hidden = YES;
     speedSlider.hidden = YES;
     UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
     [self addGestureRecognizer:recog];
@@ -116,6 +132,7 @@ static float offset_x, offset_y, offset_x_orig, offset_y_orig;
 }
 
 - (void) handleTap:(UITapGestureRecognizer *)recog {
+    scaleSlider.hidden = !scaleSlider.isHidden;
     speedSlider.hidden = !speedSlider.isHidden;
 }
 
@@ -123,6 +140,8 @@ static float offset_x, offset_y, offset_x_orig, offset_y_orig;
     zoom = 1;
     offset_x = width / 2.0;
     offset_y = height / 2.0;
+    scaleSlider.hidden = YES;
+    speedSlider.hidden = YES;
     [self setNeedsDisplay];
 }
 
