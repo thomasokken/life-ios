@@ -62,13 +62,17 @@ static unsigned int history[HISTORY];
 static int repeats;
 static float delay = 8;
 
-- (void) restart {
-    int size = stride * height;
+- (BOOL) sizeChanged {
     int w = self.bounds.size.width / SCALE;
     int h = self.bounds.size.height / SCALE;
-    if (w != width || h != height) {
-        width = w;
-        height = h;
+    return w != width || h != height;
+}
+
+- (void) restart {
+    int size = stride * height;
+    if ([self sizeChanged]) {
+        width = self.bounds.size.width / SCALE;
+        height = self.bounds.size.height / SCALE;
         free(bits1);
         free(bits2);
         stride = (width + 31) >> 5;
@@ -135,7 +139,7 @@ static float delay = 8;
     uint32_t rightedgemask = 0xffffffff >> (31 - (width - 1 & 31));
     int crc = 0;
 
-    if (repeats == 0 || self.bounds.size.width / SCALE != width || self.bounds.size.height / SCALE != height) {
+    if (repeats == 0 || [self sizeChanged]) {
         [self restart];
         goto done;
     }
