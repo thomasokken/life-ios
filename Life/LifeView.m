@@ -98,7 +98,10 @@ static bool resized = true;
 - (IBAction) scaleSliderUpdated {
     int s = (int) (scaleSlider.value + 0.5);
     scaleSlider.value = s;
+    double oldPixelScale = pixelScale;
     pixelScale = (1 << s) / [[UIScreen mainScreen] scale];
+    if (oldPixelScale != pixelScale)
+        resized = true;
 }
 
 - (IBAction) speedSliderUpdated {
@@ -207,7 +210,7 @@ static bool resized = true;
     int crc = 0;
 
     if (repeats == 0 || resized) {
-        [self restart];
+        [self performSelectorOnMainThread:@selector(restart) withObject:nil waitUntilDone:YES];
         goto done;
     }
 
