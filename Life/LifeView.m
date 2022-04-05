@@ -61,7 +61,7 @@ static int repeats;
 static float delay = 8;
 static int pixelScale = 2;
 static float zoom = 1;
-static float offset_x, offset_y;
+static float offset_x, offset_y, offset_x_orig, offset_y_orig;
 
 - (BOOL) sizeChanged {
     int w = self.bounds.size.width / pixelScale;
@@ -120,7 +120,7 @@ static float offset_x, offset_y;
 }
 
 - (void) handleDoubleTap:(UITapGestureRecognizer *)recog {
-    zoom = 2;
+    zoom = 1;
     offset_x = width / 2.0;
     offset_y = height / 2.0;
     [self setNeedsDisplay];
@@ -137,7 +137,15 @@ static float offset_x, offset_y;
 }
 
 - (void) handlePan:(UIPanGestureRecognizer *)pan {
-
+    if (pan.state == UIGestureRecognizerStateBegan) {
+        offset_x_orig = offset_x;
+        offset_y_orig = offset_y;
+    } else if (pan.state == UIGestureRecognizerStateChanged) {
+        CGPoint p = [pan translationInView:self];
+        offset_x = offset_x_orig - p.x / pixelScale / zoom;
+        offset_y = offset_y_orig - p.y / pixelScale / zoom;
+        [self setNeedsDisplay];
+    }
 }
 
 - (void) drawRect:(CGRect)rect {
