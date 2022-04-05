@@ -61,7 +61,7 @@ static int repeats;
 static float delay = 8;
 static int pixelScale = 2;
 static float zoom = 1;
-static float offset_x = 0, offset_y = 0;
+static float offset_x, offset_y;
 
 - (BOOL) sizeChanged {
     int w = self.bounds.size.width / pixelScale;
@@ -74,6 +74,8 @@ static float offset_x = 0, offset_y = 0;
     if ([self sizeChanged]) {
         width = self.bounds.size.width / pixelScale;
         height = self.bounds.size.height / pixelScale;
+        offset_x = width / 2.0;
+        offset_y = height / 2.0;
         free(bits1);
         free(bits2);
         stride = (width + 31) >> 5;
@@ -119,22 +121,18 @@ static float offset_x = 0, offset_y = 0;
 
 - (void) handleDoubleTap:(UITapGestureRecognizer *)recog {
     zoom = 2;
-    offset_x = self.bounds.size.width / (zoom * pixelScale);
-    offset_y = self.bounds.size.height / (zoom * pixelScale);
+    offset_x = width / 2.0;
+    offset_y = height / 2.0;
     [self setNeedsDisplay];
 }
 
 - (void) handlePinch:(UIPinchGestureRecognizer *)pinch {
     if (pinch.state == UIGestureRecognizerStateChanged) {
-        float xcoff = offset_x - self.bounds.size.width / (zoom * pixelScale);
-        float ycoff = offset_y - self.bounds.size.height / (zoom * pixelScale);
         zoom *= pinch.scale;
         if (zoom < 1)
             zoom = 1;
         else if (zoom > 16)
             zoom = 16;
-        offset_x = xcoff + self.bounds.size.width / (zoom * pixelScale);
-        offset_y = ycoff + self.bounds.size.height / (zoom * pixelScale);
     }
 }
 
@@ -144,8 +142,9 @@ static float offset_x = 0, offset_y = 0;
 
 - (void) drawRect:(CGRect)rect {
     CGContextRef myContext = UIGraphicsGetCurrentContext();
-    CGContextTranslateCTM(myContext, offset_x, offset_y);
+    CGContextTranslateCTM(myContext, self.bounds.size.width / 2, self.bounds.size.height / 2);
     CGContextScaleCTM(myContext, zoom * pixelScale, zoom * pixelScale);
+    CGContextTranslateCTM(myContext, -offset_x, -offset_y);
     CGContextSetRGBFillColor(myContext, 1.0, 1.0, 1.0, 1.0);
     CGContextFillRect(myContext, [self bounds]);
     CGContextSetRGBFillColor(myContext, 0.0, 0.0, 0.0, 1.0);
