@@ -63,16 +63,17 @@ static float delay = 8;
 static double pixelScale = 2;
 static float zoom = 1;
 static float offset_x, offset_y, offset_x_orig, offset_y_orig;
+static bool resized = true;
 
-- (BOOL) sizeChanged {
-    int w = self.bounds.size.width / pixelScale;
-    int h = self.bounds.size.height / pixelScale;
-    return w != width || h != height;
+- (void) setBounds:(CGRect)bounds {
+    [super setBounds:bounds];
+    resized = true;
 }
 
 - (void) restart {
     int size = stride * height;
-    if ([self sizeChanged]) {
+    if (resized) {
+        resized = false;
         width = self.bounds.size.width / pixelScale;
         height = self.bounds.size.height / pixelScale;
         offset_x = width / 2.0;
@@ -128,7 +129,12 @@ static float offset_x, offset_y, offset_x_orig, offset_y_orig;
     [self addGestureRecognizer:pinch];
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
     [self addGestureRecognizer:pan];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
     [self performSelectorInBackground:@selector(worker) withObject:nil];
+}
+
+- (void)orientationChanged:(NSNotification *)notification{
+    resized = true;
 }
 
 - (void) handleTap:(UITapGestureRecognizer *)recog {
@@ -200,7 +206,7 @@ static float offset_x, offset_y, offset_x_orig, offset_y_orig;
     uint32_t rightedgemask = 0xffffffff >> (31 - (width - 1 & 31));
     int crc = 0;
 
-    if (repeats == 0 || [self sizeChanged]) {
+    if (repeats == 0 || resized) {
         [self restart];
         goto done;
     }
