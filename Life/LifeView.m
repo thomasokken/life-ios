@@ -61,7 +61,7 @@ static unsigned int history[HISTORY];
 static int repeats;
 static float delay;
 static double pixelScale;
-static float zoom = 1;
+static float zoom = 1, zoom_orig;
 static float offset_x, offset_y, offset_x_orig, offset_y_orig;
 static bool resized = true;
 static time_t ui_hide_time = 0;
@@ -189,12 +189,15 @@ static time_t ui_hide_time = 0;
 }
 
 - (void) handlePinch:(UIPinchGestureRecognizer *)pinch {
-    if (pinch.state == UIGestureRecognizerStateChanged) {
-        zoom *= pinch.scale;
+    if (pinch.state == UIGestureRecognizerStateBegan) {
+        zoom_orig = zoom;
+    } else if (pinch.state == UIGestureRecognizerStateChanged) {
+        zoom = zoom_orig * pinch.scale;
         if (zoom < 1)
             zoom = 1;
         else if (zoom > 16)
             zoom = 16;
+        [self setNeedsDisplay];
     }
 }
 
