@@ -206,6 +206,19 @@ static bool paused = false;
     [[UIApplication sharedApplication] setStatusBarHidden:YES];
 }
 
+- (void) pinOffset {
+    float w2 = self.bounds.size.width / 2 / zoom / pixelScale;
+    if (offset_x < w2)
+        offset_x = w2;
+    if (offset_x > width - w2)
+        offset_x = width - w2;
+    float h2 = self.bounds.size.height / 2 / zoom / pixelScale;
+    if (offset_y < h2)
+        offset_y = h2;
+    if (offset_y > height - h2)
+        offset_y = height - h2;
+}
+
 - (void) handlePinch:(UIPinchGestureRecognizer *)pinch {
     if (pinch.state == UIGestureRecognizerStateBegan) {
         zoom_orig = zoom;
@@ -215,6 +228,7 @@ static bool paused = false;
             zoom = 1;
         else if (zoom > 16)
             zoom = 16;
+        [self pinOffset];
         [self setNeedsDisplay];
     }
 }
@@ -227,6 +241,7 @@ static bool paused = false;
         CGPoint p = [pan translationInView:self];
         offset_x = offset_x_orig - p.x / pixelScale / zoom;
         offset_y = offset_y_orig - p.y / pixelScale / zoom;
+        [self pinOffset];
         [self setNeedsDisplay];
     }
 }
