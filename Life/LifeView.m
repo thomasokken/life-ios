@@ -13,6 +13,10 @@
 
 @synthesize scaleSlider;
 @synthesize speedSlider;
+@synthesize stopButton;
+@synthesize startButton;
+@synthesize stepButton;
+@synthesize restartButton;
 
 static unsigned short crc16[] = {
     0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
@@ -65,6 +69,7 @@ static float zoom = 1, zoom_orig;
 static float offset_x, offset_y, offset_x_orig, offset_y_orig;
 static bool resized = true;
 static time_t ui_hide_time = 0;
+static bool paused = false;
 
 - (void) setBounds:(CGRect)bounds {
     [super setBounds:bounds];
@@ -94,6 +99,7 @@ static time_t ui_hide_time = 0;
     }
     repeats = PATIENCE;
     memset(history, 0, HISTORY * sizeof(unsigned int));
+    [self setNeedsDisplay];
 }
 
 - (IBAction) scaleSliderUpdated {
@@ -134,7 +140,6 @@ static time_t ui_hide_time = 0;
 
     pixelScale = (1 << ((int) scaleSlider.value)) / [[UIScreen mainScreen] scale];
     [self restart];
-    [self setNeedsDisplay];
 
     delay = (int) [defaults integerForKey:@"delay"];
     if (delay == 0)
@@ -143,18 +148,19 @@ static time_t ui_hide_time = 0;
         delay--;
     [speedSlider setValue:delay];
 
-    scaleSlider.hidden = YES;
-    speedSlider.hidden = YES;
-    [[UIApplication sharedApplication] setStatusBarHidden:YES];
+    [self hideUI];
 
     UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
     [self addGestureRecognizer:recog];
     recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleDoubleTap:)];
     recog.numberOfTapsRequired = 2;
+    recog.delegate = self;
     [self addGestureRecognizer:recog];
     UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
+    pinch.delegate = self;
     [self addGestureRecognizer:pinch];
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    pan.delegate = self;
     [self addGestureRecognizer:pan];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
 
@@ -165,10 +171,18 @@ static time_t ui_hide_time = 0;
     resized = true;
 }
 
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
+    return touch.view == self;
+}
+
 - (void) handleTap:(UITapGestureRecognizer *)recog {
     bool hidden = !scaleSlider.isHidden;
     scaleSlider.hidden = hidden;
     speedSlider.hidden = hidden;
+    stopButton.hidden = hidden;
+    startButton.hidden = hidden;
+    stepButton.hidden = hidden;
+    restartButton.hidden = hidden;
     ui_hide_time = hidden ? 0 : time(NULL) + 15;
     [[UIApplication sharedApplication] setStatusBarHidden:hidden];
 }
@@ -184,6 +198,10 @@ static time_t ui_hide_time = 0;
 - (void) hideUI {
     scaleSlider.hidden = YES;
     speedSlider.hidden = YES;
+    stopButton.hidden = YES;
+    startButton.hidden = YES;
+    stepButton.hidden = YES;
+    restartButton.hidden = YES;
     ui_hide_time = 0;
     [[UIApplication sharedApplication] setStatusBarHidden:YES];
 }
@@ -213,6 +231,32 @@ static time_t ui_hide_time = 0;
     }
 }
 
+- (IBAction) stopPressed {
+    ui_hide_time = time(NULL) + 15;
+    paused = true;
+}
+
+- (IBAction) startPressed {
+    ui_hide_time = time(NULL) + 15;
+    paused = false;
+}
+
+- (IBAction) stepPressed {
+    ui_hide_time = time(NULL) + 15;
+    if (paused) {
+        [self work];
+        [self setNeedsDisplay];
+    }
+}
+
+- (IBAction) restartPressed {
+    ui_hide_time = time(NULL) + 15;
+    if (paused)
+        [self restart];
+    else
+        repeats = 0;
+}
+
 - (void) drawRect:(CGRect)rect {
     CGContextRef myContext = UIGraphicsGetCurrentContext();
     CGContextTranslateCTM(myContext, self.bounds.size.width / 2, self.bounds.size.height / 2);
@@ -238,23 +282,12 @@ static time_t ui_hide_time = 0;
         }
 }
 
-- (void) worker {
-    moar:;
+- (void) work {
     int index = 0;
     int aboveindex = -stride;
     int belowindex = stride;
     uint32_t rightedgemask = 0xffffffff >> (31 - (width - 1 & 31));
     int crc = 0;
-
-    if (ui_hide_time != 0 && time(NULL) > ui_hide_time) {
-        ui_hide_time = 0;
-        [self performSelectorOnMainThread:@selector(hideUI) withObject:NULL waitUntilDone:NO];
-    }
-
-    if (repeats == 0 || resized) {
-        [self performSelectorOnMainThread:@selector(restart) withObject:nil waitUntilDone:YES];
-        goto done;
-    }
 
     for (int y = 0; y < height; y++) {
         bool notattop = y != 0;
@@ -373,8 +406,27 @@ static time_t ui_hide_time = 0;
     else
         repeats = PATIENCE;
 
+}
+
+- (void) worker {
+    moar:;
+    if (ui_hide_time != 0 && time(NULL) > ui_hide_time) {
+        ui_hide_time = 0;
+        [self performSelectorOnMainThread:@selector(hideUI) withObject:NULL waitUntilDone:NO];
+    }
+
+    if (repeats == 0 || resized) {
+        [self performSelectorOnMainThread:@selector(restart) withObject:nil waitUntilDone:YES];
+        goto done;
+    }
+
+    if (paused)
+        goto no_paint;
+    [self work];
+
     done:
     [self performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:NO];
+    no_paint:;
     int64_t d = 1000000000 * pow(2, -delay);
     struct timespec ts = { d / 1000000000, d % 1000000000 };
     nanosleep(&ts, NULL);
