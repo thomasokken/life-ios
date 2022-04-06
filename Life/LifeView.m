@@ -335,6 +335,33 @@ static int paintMode;
                 w >>= 1;
             }
         }
+
+    /* TODO: Don't draw unnecessary lines; this is too slow.
+    if (zoom * pixelScale >= 4) {
+        CGMutablePathRef path = CGPathCreateMutable();
+        for (int v = 0; v <= height; v++) {
+            CGPathMoveToPoint(path, NULL, 0, v);
+            CGPathAddLineToPoint(path, NULL, width, v);
+        }
+        for (int h = 0; h <= width; h++) {
+            CGPathMoveToPoint(path, NULL, h, 0);
+            CGPathAddLineToPoint(path, NULL, h, height);
+        }
+        CGPathCloseSubpath(path);
+
+        CGContextSetLineWidth(myContext, 1.0 / zoom / pixelScale);
+        CGContextSetRGBStrokeColor(myContext, 1.0, 1.0, 1.0, 1.0);
+        CGContextAddPath(myContext, path);
+        CGContextDrawPath(myContext, kCGPathStroke);
+
+        CGContextSetRGBStrokeColor(myContext, 0.0, 0.0, 0.0, 1.0);
+        CGContextSetRGBFillColor(myContext, 1.0, 1.0, 1.0, 1.0);
+        CGFloat dash[] = { 1.0 / zoom / pixelScale, 1.0 / zoom / pixelScale };
+        CGContextSetLineDash(myContext, 0, dash, 2);
+        CGContextAddPath(myContext, path);
+        CGContextDrawPath(myContext, kCGPathStroke);
+    }
+    */
 }
 
 - (void) work {
