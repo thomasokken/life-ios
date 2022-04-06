@@ -74,10 +74,14 @@ static bool resized = true;
 static time_t ui_hide_time = 0;
 static bool paused = false;
 static bool painting = false;
+static CGSize screenSize;
 
 - (void) setBounds:(CGRect)bounds {
     [super setBounds:bounds];
-    resized = true;
+    if (bounds.size.width != screenSize.width || bounds.size.height != screenSize.height) {
+        screenSize = bounds.size;
+        resized = true;
+    }
 }
 
 - (void) restart {
@@ -130,6 +134,8 @@ static bool painting = false;
 
 - (void) awakeFromNib {
     [super awakeFromNib];
+    screenSize = self.bounds.size;
+
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     int n = 0, b = 1, s = (int) [[UIScreen mainScreen] scale];
     while (b < s) {
@@ -174,7 +180,10 @@ static bool painting = false;
 }
 
 - (void) orientationChanged:(NSNotification *)notification{
-    resized = true;
+    if (self.bounds.size.width != screenSize.width || self.bounds.size.height != screenSize.height) {
+        screenSize = self.bounds.size;
+        resized = true;
+    }
 }
 
 - (BOOL) gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
