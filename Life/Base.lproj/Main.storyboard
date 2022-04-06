@@ -17,21 +17,14 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <slider opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="8" minValue="0.0" maxValue="16" translatesAutoresizingMaskIntoConstraints="NO" id="OKJ-ZI-EwV">
-                                <rect key="frame" x="20" y="832" width="376" height="30"/>
+                                <rect key="frame" x="134" y="719" width="262" height="30"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
                                 <connections>
                                     <action selector="speedSliderUpdated" destination="8bC-Xf-vdC" eventType="valueChanged" id="iT5-qh-p9p"/>
                                 </connections>
                             </slider>
-                            <slider opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="1" minValue="0.0" maxValue="16" translatesAutoresizingMaskIntoConstraints="NO" id="haO-xX-Hvg">
-                                <rect key="frame" x="20" y="794" width="376" height="30"/>
-                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
-                                <connections>
-                                    <action selector="scaleSliderUpdated" destination="8bC-Xf-vdC" eventType="valueChanged" id="sbS-g5-Qqh"/>
-                                </connections>
-                            </slider>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ar6-3N-yPN">
-                                <rect key="frame" x="39" y="755" width="50" height="31"/>
+                                <rect key="frame" x="20" y="831" width="50" height="31"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="gray" title="||">
@@ -42,20 +35,8 @@
                                     <action selector="stopPressed" destination="8bC-Xf-vdC" eventType="touchDown" id="ThW-vN-NkE"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CLh-2w-QZY">
-                                <rect key="frame" x="97" y="755" width="50" height="31"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="gray" title="&gt;">
-                                    <color key="baseForegroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                    <color key="baseBackgroundColor" white="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                </buttonConfiguration>
-                                <connections>
-                                    <action selector="startPressed" destination="8bC-Xf-vdC" eventType="touchDown" id="0gO-xe-p4j"/>
-                                </connections>
-                            </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="f1b-x9-fVP">
-                                <rect key="frame" x="155" y="755" width="50" height="31"/>
+                                <rect key="frame" x="78" y="831" width="50" height="31"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="gray" title="1">
@@ -66,11 +47,49 @@
                                     <action selector="stepPressed" destination="8bC-Xf-vdC" eventType="touchDown" id="xfv-ZM-dZE"/>
                                 </connections>
                             </button>
+                            <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="oVN-mf-nER">
+                                <rect key="frame" x="347" y="831" width="49" height="31"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                                <connections>
+                                    <action selector="paintToggled:" destination="8bC-Xf-vdC" eventType="valueChanged" id="RCi-Xj-LyI"/>
+                                </connections>
+                            </switch>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="speed" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bEu-n6-tY4">
+                                <rect key="frame" x="19" y="719" width="90" height="29"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="coarseness" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="hmf-rb-6sI">
+                                <rect key="frame" x="19" y="768" width="90" height="29"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="paint" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="NZS-QS-2wv">
+                                <rect key="frame" x="295" y="831" width="44" height="31"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <slider opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="1" minValue="0.0" maxValue="16" translatesAutoresizingMaskIntoConstraints="NO" id="haO-xX-Hvg">
+                                <rect key="frame" x="134" y="768" width="262" height="30"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
+                                <connections>
+                                    <action selector="scaleSliderUpdated" destination="8bC-Xf-vdC" eventType="valueChanged" id="sbS-g5-Qqh"/>
+                                </connections>
+                            </slider>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="cBl-ZL-7Cv">
-                                <rect key="frame" x="213" y="755" width="50" height="31"/>
+                                <rect key="frame" x="136" y="831" width="50" height="31"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="gray" title="⟲">
+                                <buttonConfiguration key="configuration" style="gray" title="o">
                                     <color key="baseForegroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     <color key="baseBackgroundColor" white="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 </buttonConfiguration>
@@ -82,10 +101,13 @@
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <connections>
+                            <outlet property="paintLabel" destination="NZS-QS-2wv" id="1jT-I7-I6b"/>
+                            <outlet property="paintSwitch" destination="oVN-mf-nER" id="tuU-qU-vb9"/>
                             <outlet property="restartButton" destination="cBl-ZL-7Cv" id="M1d-c5-e1e"/>
+                            <outlet property="scaleLabel" destination="hmf-rb-6sI" id="Mnv-pF-t69"/>
                             <outlet property="scaleSlider" destination="haO-xX-Hvg" id="Axp-1A-uCl"/>
+                            <outlet property="speedLabel" destination="bEu-n6-tY4" id="pfr-rw-dou"/>
                             <outlet property="speedSlider" destination="OKJ-ZI-EwV" id="dkS-eZ-5dQ"/>
-                            <outlet property="startButton" destination="CLh-2w-QZY" id="XzC-1M-Y8X"/>
                             <outlet property="stepButton" destination="f1b-x9-fVP" id="K1B-jb-Ah0"/>
                             <outlet property="stopButton" destination="Ar6-3N-yPN" id="SzT-Bf-Z9V"/>
                         </connections>

@@ -14,9 +14,12 @@
 @synthesize scaleSlider;
 @synthesize speedSlider;
 @synthesize stopButton;
-@synthesize startButton;
 @synthesize stepButton;
 @synthesize restartButton;
+@synthesize paintSwitch;
+@synthesize scaleLabel;
+@synthesize speedLabel;
+@synthesize paintLabel;
 
 static unsigned short crc16[] = {
     0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
@@ -70,6 +73,7 @@ static float offset_x, offset_y, offset_x_orig, offset_y_orig;
 static bool resized = true;
 static time_t ui_hide_time = 0;
 static bool paused = false;
+static bool painting = false;
 
 - (void) setBounds:(CGRect)bounds {
     [super setBounds:bounds];
@@ -119,6 +123,11 @@ static bool paused = false;
     ui_hide_time = time(NULL) + 15;
 }
 
+- (IBAction) paintToggled:(id)sender {
+    ui_hide_time = time(NULL) + 15;
+    painting = [paintSwitch isOn];
+}
+
 - (void) awakeFromNib {
     [super awakeFromNib];
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
@@ -164,35 +173,35 @@ static bool paused = false;
     [self performSelectorInBackground:@selector(worker) withObject:nil];
 }
 
-- (void)orientationChanged:(NSNotification *)notification{
+- (void) orientationChanged:(NSNotification *)notification{
     resized = true;
 }
 
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
-    return touch.view == self;
+- (BOOL) gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
+    return touch.view == self && !painting;
 }
 
 - (void) handleTap:(UITapGestureRecognizer *)recog {
-    bool hidden = !scaleSlider.isHidden;
+    [self setUIVisibility:scaleSlider.isHidden];
+}
+
+- (void) setUIVisibility:(BOOL)visible {
+    BOOL hidden = !visible;
     scaleSlider.hidden = hidden;
     speedSlider.hidden = hidden;
     stopButton.hidden = hidden;
-    startButton.hidden = hidden;
     stepButton.hidden = hidden;
     restartButton.hidden = hidden;
+    paintSwitch.hidden = hidden;
+    scaleLabel.hidden = hidden;
+    speedLabel.hidden = hidden;
+    paintLabel.hidden = hidden;
     ui_hide_time = hidden ? 0 : time(NULL) + 15;
     [[UIApplication sharedApplication] setStatusBarHidden:hidden];
 }
 
 - (void) hideUI {
-    scaleSlider.hidden = YES;
-    speedSlider.hidden = YES;
-    stopButton.hidden = YES;
-    startButton.hidden = YES;
-    stepButton.hidden = YES;
-    restartButton.hidden = YES;
-    ui_hide_time = 0;
-    [[UIApplication sharedApplication] setStatusBarHidden:YES];
+    [self setUIVisibility:NO];
 }
 
 - (void) pinOffset {
@@ -236,29 +245,62 @@ static bool paused = false;
 }
 
 - (IBAction) stopPressed {
+    paused = !paused;
     ui_hide_time = time(NULL) + 15;
-    paused = true;
-}
-
-- (IBAction) startPressed {
-    ui_hide_time = time(NULL) + 15;
-    paused = false;
 }
 
 - (IBAction) stepPressed {
+    paused = true;
     ui_hide_time = time(NULL) + 15;
-    if (paused) {
-        [self work];
-        [self setNeedsDisplay];
-    }
+    [self work];
+    [self setNeedsDisplay];
 }
 
 - (IBAction) restartPressed {
     ui_hide_time = time(NULL) + 15;
-    if (paused)
+    if (painting) {
+        memset(bits1, 0, 4 * height * stride);
+        [self setNeedsDisplay];
+    } else if (paused) {
         [self restart];
-    else
+    } else {
         repeats = 0;
+    }
+}
+
+static int paintMode;
+
+- (void) handleTouchAt:(NSSet<UITouch *> *)touches first:(BOOL)first {
+    UITouch *touch = (UITouch *) [touches anyObject];
+    CGPoint p = [touch locationInView:self];
+    int h = (int) ((p.x - self.bounds.size.width / 2) / zoom / pixelScale + offset_x);
+    int v = (int) ((p.y - self.bounds.size.height / 2) / zoom / pixelScale + offset_y);
+    if (h < 0 || h >= width || v < 0 || v >= height) {
+        if (first)
+            paintMode = -1;
+        return;
+    }
+    if (first)
+        paintMode = !((bits1[v * stride + (h >> 5)] >> (h & 31)) & 1);
+    if (paintMode)
+        bits1[v * stride + (h >> 5)] |= 1 << (h & 31);
+    else
+        bits1[v * stride + (h >> 5)] &= ~(1 << (h & 31));
+    [self setNeedsDisplay];
+}
+
+- (void) touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    if (painting)
+        [self handleTouchAt:touches first:YES];
+    else
+        [super touchesBegan:touches withEvent:event];
+}
+
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    if (painting)
+        [self handleTouchAt:touches first:NO];
+    else
+        [super touchesBegan:touches withEvent:event];
 }
 
 - (void) drawRect:(CGRect)rect {
@@ -414,7 +456,7 @@ static bool paused = false;
 
 - (void) worker {
     moar:;
-    if (ui_hide_time != 0 && time(NULL) > ui_hide_time) {
+    if (ui_hide_time != 0 && time(NULL) > ui_hide_time && !painting) {
         ui_hide_time = 0;
         [self performSelectorOnMainThread:@selector(hideUI) withObject:NULL waitUntilDone:NO];
     }
