@@ -64,6 +64,7 @@ static double pixelScale;
 static float zoom = 1;
 static float offset_x, offset_y, offset_x_orig, offset_y_orig;
 static bool resized = true;
+static time_t ui_hide_time = 0;
 
 - (void) setBounds:(CGRect)bounds {
     [super setBounds:bounds];
@@ -103,11 +104,13 @@ static bool resized = true;
     pixelScale = (1 << s) / [[UIScreen mainScreen] scale];
     if (oldPixelScale != pixelScale)
         resized = true;
+    ui_hide_time = time(NULL) + 15;
 }
 
 - (IBAction) speedSliderUpdated {
     delay = [speedSlider value];
     [[NSUserDefaults standardUserDefaults] setInteger:(delay + 1) forKey:@"delay"];
+    ui_hide_time = time(NULL) + 15;
 }
 
 - (void) awakeFromNib {
@@ -164,15 +167,21 @@ static bool resized = true;
 - (void) handleTap:(UITapGestureRecognizer *)recog {
     scaleSlider.hidden = !scaleSlider.isHidden;
     speedSlider.hidden = !speedSlider.isHidden;
+    ui_hide_time = scaleSlider.hidden ? 0 : time(NULL) + 15;
 }
 
 - (void) handleDoubleTap:(UITapGestureRecognizer *)recog {
     zoom = 1;
     offset_x = width / 2.0;
     offset_y = height / 2.0;
+    [self hideUI];
+    [self setNeedsDisplay];
+}
+
+- (void) hideUI {
     scaleSlider.hidden = YES;
     speedSlider.hidden = YES;
-    [self setNeedsDisplay];
+    ui_hide_time = 0;
 }
 
 - (void) handlePinch:(UIPinchGestureRecognizer *)pinch {
@@ -229,6 +238,11 @@ static bool resized = true;
     int belowindex = stride;
     uint32_t rightedgemask = 0xffffffff >> (31 - (width - 1 & 31));
     int crc = 0;
+
+    if (ui_hide_time != 0 && time(NULL) > ui_hide_time) {
+        ui_hide_time = 0;
+        [self performSelectorOnMainThread:@selector(hideUI) withObject:NULL waitUntilDone:NO];
+    }
 
     if (repeats == 0 || resized) {
         [self performSelectorOnMainThread:@selector(restart) withObject:nil waitUntilDone:YES];
