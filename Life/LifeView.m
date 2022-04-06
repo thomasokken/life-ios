@@ -59,8 +59,8 @@ static uint32_t *bits1 = NULL, *bits2 = NULL;
 static int width = 0, height = 0, stride;
 static unsigned int history[HISTORY];
 static int repeats;
-static float delay = 8;
-static double pixelScale = 2;
+static float delay;
+static double pixelScale;
 static float zoom = 1;
 static float offset_x, offset_y, offset_x_orig, offset_y_orig;
 static bool resized = true;
@@ -98,6 +98,7 @@ static bool resized = true;
 - (IBAction) scaleSliderUpdated {
     int s = (int) (scaleSlider.value + 0.5);
     scaleSlider.value = s;
+    [[NSUserDefaults standardUserDefaults] setInteger:(s + 1) forKey:@"scale"];
     double oldPixelScale = pixelScale;
     pixelScale = (1 << s) / [[UIScreen mainScreen] scale];
     if (oldPixelScale != pixelScale)
@@ -106,23 +107,42 @@ static bool resized = true;
 
 - (IBAction) speedSliderUpdated {
     delay = [speedSlider value];
+    [[NSUserDefaults standardUserDefaults] setInteger:(delay + 1) forKey:@"delay"];
 }
 
 - (void) awakeFromNib {
     [super awakeFromNib];
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     int n = 0, b = 1, s = (int) [[UIScreen mainScreen] scale];
     while (b < s) {
         b <<= 1;
         n++;
     }
     scaleSlider.maximumValue = n + 3;
-    scaleSlider.value = n + 1;
+
+    int scale = (int) [defaults integerForKey:@"scale"];
+    if (scale == 0)
+        scale = n + 1;
+    else if (scale > n + 3)
+        scale = n + 3;
+    else
+        scale--;
+    scaleSlider.value = scale;
+
     pixelScale = (1 << ((int) scaleSlider.value)) / [[UIScreen mainScreen] scale];
     [self restart];
     [self setNeedsDisplay];
+
+    delay = (int) [defaults integerForKey:@"delay"];
+    if (delay == 0)
+        delay = 8;
+    else
+        delay--;
     [speedSlider setValue:delay];
+
     scaleSlider.hidden = YES;
     speedSlider.hidden = YES;
+
     UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
     [self addGestureRecognizer:recog];
     recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleDoubleTap:)];
@@ -133,6 +153,7 @@ static bool resized = true;
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
     [self addGestureRecognizer:pan];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
+
     [self performSelectorInBackground:@selector(worker) withObject:nil];
 }
 
