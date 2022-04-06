@@ -145,6 +145,7 @@ static time_t ui_hide_time = 0;
 
     scaleSlider.hidden = YES;
     speedSlider.hidden = YES;
+    [[UIApplication sharedApplication] setStatusBarHidden:YES];
 
     UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
     [self addGestureRecognizer:recog];
@@ -165,9 +166,11 @@ static time_t ui_hide_time = 0;
 }
 
 - (void) handleTap:(UITapGestureRecognizer *)recog {
-    scaleSlider.hidden = !scaleSlider.isHidden;
-    speedSlider.hidden = !speedSlider.isHidden;
-    ui_hide_time = scaleSlider.hidden ? 0 : time(NULL) + 15;
+    bool hidden = !scaleSlider.isHidden;
+    scaleSlider.hidden = hidden;
+    speedSlider.hidden = hidden;
+    ui_hide_time = hidden ? 0 : time(NULL) + 15;
+    [[UIApplication sharedApplication] setStatusBarHidden:hidden];
 }
 
 - (void) handleDoubleTap:(UITapGestureRecognizer *)recog {
@@ -182,6 +185,7 @@ static time_t ui_hide_time = 0;
     scaleSlider.hidden = YES;
     speedSlider.hidden = YES;
     ui_hide_time = 0;
+    [[UIApplication sharedApplication] setStatusBarHidden:YES];
 }
 
 - (void) handlePinch:(UIPinchGestureRecognizer *)pinch {
