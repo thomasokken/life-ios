@@ -151,9 +151,6 @@ static bool paused = false;
     [self hideUI];
 
     UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
-    [self addGestureRecognizer:recog];
-    recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleDoubleTap:)];
-    recog.numberOfTapsRequired = 2;
     recog.delegate = self;
     [self addGestureRecognizer:recog];
     UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
@@ -185,14 +182,6 @@ static bool paused = false;
     restartButton.hidden = hidden;
     ui_hide_time = hidden ? 0 : time(NULL) + 15;
     [[UIApplication sharedApplication] setStatusBarHidden:hidden];
-}
-
-- (void) handleDoubleTap:(UITapGestureRecognizer *)recog {
-    zoom = 1;
-    offset_x = width / 2.0;
-    offset_y = height / 2.0;
-    [self hideUI];
-    [self setNeedsDisplay];
 }
 
 - (void) hideUI {
