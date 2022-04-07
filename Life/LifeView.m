@@ -130,7 +130,11 @@ static CGSize screenSize;
 - (IBAction) paintToggled:(id)sender {
     ui_hide_time = time(NULL) + 15;
     painting = [paintSwitch isOn];
+    [self setNeedsDisplay];
 }
+
+static UIPanGestureRecognizer *twoFingerPan;
+static UIPinchGestureRecognizer *pinch;
 
 - (void) awakeFromNib {
     [super awakeFromNib];
@@ -168,12 +172,15 @@ static CGSize screenSize;
     UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
     recog.delegate = self;
     [self addGestureRecognizer:recog];
-    UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
+    pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
     pinch.delegate = self;
     [self addGestureRecognizer:pinch];
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
     pan.delegate = self;
     [self addGestureRecognizer:pan];
+    twoFingerPan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    twoFingerPan.minimumNumberOfTouches = 2;
+    [self addGestureRecognizer:twoFingerPan];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
 
     [self performSelectorInBackground:@selector(worker) withObject:nil];
@@ -187,7 +194,12 @@ static CGSize screenSize;
 }
 
 - (BOOL) gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
-    return touch.view == self && !painting;
+    if (touch.view != self)
+        return NO;
+    if (!painting)
+        return gestureRecognizer != twoFingerPan;
+    else
+        return gestureRecognizer == pinch || gestureRecognizer == twoFingerPan;
 }
 
 - (void) handleTap:(UITapGestureRecognizer *)recog {
@@ -313,6 +325,19 @@ static int paintMode;
 }
 
 - (void) drawRect:(CGRect)rect {
+    int x1 = floor(-self.bounds.size.width / 2 / zoom / pixelScale + offset_x);
+    if (x1 < 0)
+        x1 = 0;
+    int x2 = ceil(self.bounds.size.width / 2 / zoom / pixelScale + offset_x);
+    if (x2 > width)
+        x2 = width;
+    int y1 = floor(-self.bounds.size.height / 2 / zoom / pixelScale + offset_y);
+    if (y1 < 0)
+        y1 = 0;
+    int y2 = ceil(self.bounds.size.height / 2 / zoom / pixelScale + offset_y);
+    if (y2 > height)
+        y2 = height;
+
     CGContextRef myContext = UIGraphicsGetCurrentContext();
     CGContextTranslateCTM(myContext, self.bounds.size.width / 2, self.bounds.size.height / 2);
     CGContextScaleCTM(myContext, zoom * pixelScale, zoom * pixelScale);
@@ -322,11 +347,17 @@ static int paintMode;
     CGContextSetRGBFillColor(myContext, 0.0, 0.0, 0.0, 1.0);
     CGRect r;
     r.size.width = r.size.height = 1;
-    uint32_t *p = bits1;
-    for (int v = 0; v < height; v++)
-        for (int h = 0; h < stride; h++) {
-            uint32_t w = *p++;
-            for (int hh = 0; hh < 32; hh++) {
+
+    uint32_t *p = bits1 + y1 * stride + (x1 >> 5);
+    int x1w = x1 >> 5;
+    int x2w = x2 >> 5;
+    int gap = stride - x2w + x1w - 2;
+    for (int v = y1; v < y2; v++) {
+        uint32_t w = *p++;
+        int hh = x1 & 31;
+        w >>= hh;
+        for (int h = x1w; h <= x2w; h++) {
+            for (; hh < 32; hh++) {
                 if (w & 1) {
                     r.origin.x = (h << 5) | hh;
                     r.origin.y = v;
@@ -334,34 +365,33 @@ static int paintMode;
                 }
                 w >>= 1;
             }
+            w = *p++;
+            hh = 0;
         }
+        p += gap;
+    }
 
-    /* TODO: Don't draw unnecessary lines; this is too slow.
-    if (zoom * pixelScale >= 4) {
+    if (painting && zoom * pixelScale >= 4) {
         CGMutablePathRef path = CGPathCreateMutable();
-        for (int v = 0; v <= height; v++) {
-            CGPathMoveToPoint(path, NULL, 0, v);
-            CGPathAddLineToPoint(path, NULL, width, v);
+        for (int v = y1; v <= y2; v++) {
+            CGPathMoveToPoint(path, NULL, x1, v);
+            CGPathAddLineToPoint(path, NULL, x2, v);
         }
-        for (int h = 0; h <= width; h++) {
-            CGPathMoveToPoint(path, NULL, h, 0);
-            CGPathAddLineToPoint(path, NULL, h, height);
+        for (int h = x1; h <= x2; h++) {
+            CGPathMoveToPoint(path, NULL, h, y1);
+            CGPathAddLineToPoint(path, NULL, h, y2);
         }
         CGPathCloseSubpath(path);
 
         CGContextSetLineWidth(myContext, 1.0 / zoom / pixelScale);
-        CGContextSetRGBStrokeColor(myContext, 1.0, 1.0, 1.0, 1.0);
-        CGContextAddPath(myContext, path);
-        CGContextDrawPath(myContext, kCGPathStroke);
-
         CGContextSetRGBStrokeColor(myContext, 0.0, 0.0, 0.0, 1.0);
         CGContextSetRGBFillColor(myContext, 1.0, 1.0, 1.0, 1.0);
         CGFloat dash[] = { 1.0 / zoom / pixelScale, 1.0 / zoom / pixelScale };
         CGContextSetLineDash(myContext, 0, dash, 2);
         CGContextAddPath(myContext, path);
         CGContextDrawPath(myContext, kCGPathStroke);
+        CGPathRelease(path);
     }
-    */
 }
 
 - (void) work {
