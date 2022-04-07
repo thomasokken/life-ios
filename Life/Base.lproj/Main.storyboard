@@ -97,12 +97,25 @@
                                     <action selector="restartPressed" destination="8bC-Xf-vdC" eventType="touchDown" id="6ZA-wZ-d8O"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bDi-s9-MfF">
+                                <rect key="frame" x="19" y="661" width="90" height="31"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="gray" title="paste">
+                                    <color key="baseForegroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    <color key="baseBackgroundColor" white="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="pastePressed" destination="8bC-Xf-vdC" eventType="touchUpInside" id="CVm-ZO-2K8"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <connections>
                             <outlet property="paintLabel" destination="NZS-QS-2wv" id="1jT-I7-I6b"/>
                             <outlet property="paintSwitch" destination="oVN-mf-nER" id="tuU-qU-vb9"/>
+                            <outlet property="pasteButton" destination="bDi-s9-MfF" id="84A-T0-0oC"/>
                             <outlet property="restartButton" destination="cBl-ZL-7Cv" id="M1d-c5-e1e"/>
                             <outlet property="scaleLabel" destination="hmf-rb-6sI" id="Mnv-pF-t69"/>
                             <outlet property="scaleSlider" destination="haO-xX-Hvg" id="Axp-1A-uCl"/>

@@ -20,6 +20,7 @@
 @synthesize scaleLabel;
 @synthesize speedLabel;
 @synthesize paintLabel;
+@synthesize pasteButton;
 
 static unsigned short crc16[] = {
     0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
@@ -217,6 +218,7 @@ static UIPinchGestureRecognizer *pinch;
     scaleLabel.hidden = hidden;
     speedLabel.hidden = hidden;
     paintLabel.hidden = hidden;
+    pasteButton.hidden = hidden;
     ui_hide_time = hidden ? 0 : time(NULL) + 15;
     [[UIApplication sharedApplication] setStatusBarHidden:hidden];
 }
@@ -287,6 +289,57 @@ static UIPinchGestureRecognizer *pinch;
     } else {
         repeats = 0;
     }
+}
+
+- (IBAction) pastePressed {
+    UIPasteboard *pb = [UIPasteboard generalPasteboard];
+    UIImage *image = [pb image];
+    if (image == nil)
+        return;
+
+    CGImageRef imageRef = [image CGImage];
+    NSUInteger iwidth = CGImageGetWidth(imageRef);
+    NSUInteger iheight = CGImageGetHeight(imageRef);
+    CGColorSpaceRef gray = CGColorSpaceCreateDeviceGray();
+    NSUInteger istride = (iwidth + 3) & ~3;
+    unsigned char *rawData = (unsigned char *) malloc(iheight * istride);
+    CGContextRef context = CGBitmapContextCreate(rawData, iwidth, iheight,
+                    8, istride, gray, kCGImageAlphaNone);
+    CGColorSpaceRelease(gray);
+
+    CGContextDrawImage(context, CGRectMake(0, 0, iwidth, iheight), imageRef);
+    CGContextRelease(context);
+
+    /* This is very primitive: it just takes the grayscale data, maps it
+     * to black and white using thresholding, and pastes it into the buffer.
+     * Before pasting, it should try to detect whether the image has a
+     * structure consistent with large pixels, i.e. is basically a mosaic
+     * of uniform squares or rectangles.
+     * The challenge for today: how to detect such a structure, with no
+     * false positives (that's a fairly safe assumption with Life snapshots;
+     * those will be grainy at the pixel level) but also no false negatives
+     * (those might be an issue if there is additional imagery besides the
+     * Life snapshot, or, more importantly, if the image boundaries don't
+     * coincide with tile boundaries).
+     */
+    if (iwidth > width)
+        iwidth = width;
+    if (iheight > height)
+        iheight = height;
+    int dx = (int) ((width - iwidth) / 2);
+    int dy = (int) ((height - iheight) / 2);
+
+    for (int y = 0; y < iheight; y++)
+        for (int x = 0; x < iwidth; x++) {
+            unsigned char c = rawData[y * istride + x];
+            if (c < 128)
+                bits1[(y + dy) * stride + ((x + dx) >> 5)] |= 1 << ((x + dx) & 31);
+            else
+                bits1[(y + dy) * stride + ((x + dx) >> 5)] &= ~(1 << ((x + dx) & 31));
+        }
+
+    free(rawData);
+    [self setNeedsDisplay];
 }
 
 static int paintMode;

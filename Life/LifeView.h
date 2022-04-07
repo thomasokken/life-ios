@@ -20,6 +20,7 @@
     UILabel *scaleLabel;
     UILabel *speedLabel;
     UILabel *paintLabel;
+    UIButton *pasteButton;
 }
 
 @property (nonatomic, retain) IBOutlet UISlider *scaleSlider;
@@ -31,6 +32,7 @@
 @property (nonatomic, retain) IBOutlet UILabel *scaleLabel;
 @property (nonatomic, retain) IBOutlet UILabel *speedLabel;
 @property (nonatomic, retain) IBOutlet UILabel *paintLabel;
+@property (nonatomic, retain) IBOutlet UIButton *pasteButton;
 
 - (void) awakeFromNib;
 - (void) drawRect:(CGRect)rect;
@@ -40,6 +42,7 @@
 - (IBAction) stepPressed;
 - (IBAction) restartPressed;
 - (IBAction) paintToggled:(id)sender;
+- (IBAction) pastePressed;
 
 @end
 
