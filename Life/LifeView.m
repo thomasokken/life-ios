@@ -137,6 +137,44 @@ static CGSize screenSize;
 static UIPanGestureRecognizer *twoFingerPan;
 static UIPinchGestureRecognizer *pinch;
 
+struct dot {
+    int x, y;
+    bool set;
+    struct dot *next;
+};
+
+static struct dot *lastDraw = NULL;
+
+static void rememberDot(int x, int y) {
+    struct dot *d = lastDraw;
+    while (d != NULL) {
+        if (d->x == x && d->y == y)
+            return;
+        d = d->next;
+    }
+    d = (struct dot *) malloc(sizeof(struct dot));
+    d->x = x;
+    d->y = y;
+    d->set = (bits1[y * stride + (x >> 5)] & (1 << (x & 31))) != 0;
+    d->next = lastDraw;
+    lastDraw = d;
+}
+
+static void forgetDots(bool undo) {
+    struct dot *d = lastDraw;
+    while (d != NULL) {
+        if (undo)
+            if (d->set)
+                bits1[d->y * stride + (d->x >> 5)] |= 1 << (d->x & 31);
+            else
+                bits1[d->y * stride + (d->x >> 5)] &= ~(1 << (d->x & 31));
+        struct dot *n = d;
+        d = d->next;
+        free(n);
+    }
+    lastDraw = NULL;
+}
+
 - (void) awakeFromNib {
     [super awakeFromNib];
     screenSize = self.bounds.size;
@@ -242,6 +280,8 @@ static UIPinchGestureRecognizer *pinch;
 
 - (void) handlePinch:(UIPinchGestureRecognizer *)pinch {
     if (pinch.state == UIGestureRecognizerStateBegan) {
+        forgetDots(true);
+        [self setNeedsDisplay];
         zoom_orig = zoom;
     } else if (pinch.state == UIGestureRecognizerStateChanged) {
         zoom = zoom_orig * pinch.scale;
@@ -256,6 +296,8 @@ static UIPinchGestureRecognizer *pinch;
 
 - (void) handlePan:(UIPanGestureRecognizer *)pan {
     if (pan.state == UIGestureRecognizerStateBegan) {
+        forgetDots(true);
+        [self setNeedsDisplay];
         offset_x_orig = offset_x;
         offset_y_orig = offset_y;
     } else if (pan.state == UIGestureRecognizerStateChanged) {
@@ -354,6 +396,7 @@ static int paintMode;
             paintMode = -1;
         return;
     }
+    rememberDot(h, v);
     if (first)
         paintMode = !((bits1[v * stride + (h >> 5)] >> (h & 31)) & 1);
     if (paintMode)
@@ -370,11 +413,16 @@ static int paintMode;
         [super touchesBegan:touches withEvent:event];
 }
 
-- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+- (void) touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     if (painting)
         [self handleTouchAt:touches first:NO];
     else
         [super touchesBegan:touches withEvent:event];
+}
+
+- (void) touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    forgetDots(false);
+    [super touchesEnded:touches withEvent:event];
 }
 
 - (void) drawRect:(CGRect)rect {
