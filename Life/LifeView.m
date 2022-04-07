@@ -245,8 +245,8 @@ static UIPinchGestureRecognizer *pinch;
         zoom = zoom_orig * pinch.scale;
         if (zoom < 1)
             zoom = 1;
-        else if (zoom > 16)
-            zoom = 16;
+        else if (zoom > 32)
+            zoom = 32;
         [self pinOffset];
         [self setNeedsDisplay];
     }
