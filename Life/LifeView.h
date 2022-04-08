@@ -43,6 +43,7 @@
 - (IBAction) restartPressed;
 - (IBAction) paintToggled:(id)sender;
 - (IBAction) pastePressed;
+- (void) undo;
 
 @end
 

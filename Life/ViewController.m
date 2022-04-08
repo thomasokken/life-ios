@@ -6,6 +6,7 @@
 //
 
 #import "ViewController.h"
+#import "LifeView.h"
 
 @interface ViewController ()
 
@@ -13,9 +14,26 @@
 
 @implementation ViewController
 
-- (void)viewDidLoad {
+- (void) viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+}
+
+- (BOOL) canBecomeFirstResponder {
+    return YES;
+}
+
+- (void) viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    [self becomeFirstResponder];
+}
+
+- (void) motionBegan:(UIEventSubtype)motion withEvent:(UIEvent *)event {
+    if(event.type == UIEventSubtypeMotionShake) {
+        LifeView *view = (LifeView *) self.view;
+        [view undo];
+    } else
+        [super motionBegan:motion withEvent:event];
 }
 
 

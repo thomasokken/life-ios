@@ -144,6 +144,7 @@ struct dot {
 };
 
 static struct dot *lastDraw = NULL;
+static struct dot *undoableDraw = NULL;
 
 static void rememberDot(int x, int y) {
     struct dot *d = lastDraw;
@@ -160,14 +161,13 @@ static void rememberDot(int x, int y) {
     lastDraw = d;
 }
 
-static void forgetDots(bool undo) {
+static void undoDots() {
     struct dot *d = lastDraw;
     while (d != NULL) {
-        if (undo)
-            if (d->set)
-                bits1[d->y * stride + (d->x >> 5)] |= 1 << (d->x & 31);
-            else
-                bits1[d->y * stride + (d->x >> 5)] &= ~(1 << (d->x & 31));
+        if (d->set)
+            bits1[d->y * stride + (d->x >> 5)] |= 1 << (d->x & 31);
+        else
+            bits1[d->y * stride + (d->x >> 5)] &= ~(1 << (d->x & 31));
         struct dot *n = d;
         d = d->next;
         free(n);
@@ -175,9 +175,19 @@ static void forgetDots(bool undo) {
     lastDraw = NULL;
 }
 
+- (void) undo {
+    struct dot *temp = lastDraw;
+    lastDraw = undoableDraw;
+    undoDots();
+    [self setNeedsDisplay];
+    undoableDraw = NULL;
+    lastDraw = temp;
+}
+
 - (void) awakeFromNib {
     [super awakeFromNib];
     screenSize = self.bounds.size;
+    srandom((unsigned int) time(NULL));
 
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     int n = 0, b = 1, s = (int) [[UIScreen mainScreen] scale];
@@ -281,7 +291,7 @@ static void forgetDots(bool undo) {
 
 - (void) handlePinch:(UIPinchGestureRecognizer *)pinch {
     if (pinch.state == UIGestureRecognizerStateBegan) {
-        forgetDots(true);
+        undoDots();
         [self setNeedsDisplay];
         zoom_orig = zoom;
     } else if (pinch.state == UIGestureRecognizerStateChanged) {
@@ -297,7 +307,7 @@ static void forgetDots(bool undo) {
 
 - (void) handlePan:(UIPanGestureRecognizer *)pan {
     if (pan.state == UIGestureRecognizerStateBegan) {
-        forgetDots(true);
+        undoDots();
         [self setNeedsDisplay];
         offset_x_orig = offset_x;
         offset_y_orig = offset_y;
@@ -417,7 +427,13 @@ static int paintMode;
 }
 
 - (void) touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    forgetDots(false);
+    while (undoableDraw != NULL) {
+        struct dot *d = undoableDraw->next;
+        free(undoableDraw);
+        undoableDraw = d;
+    }
+    undoableDraw = lastDraw;
+    lastDraw = NULL;
     [super touchesEnded:touches withEvent:event];
 }
 
