@@ -131,6 +131,8 @@ static CGSize screenSize;
 - (IBAction) paintToggled:(id)sender {
     ui_hide_time = time(NULL) + 15;
     painting = [paintSwitch isOn];
+    if (painting)
+        paused = true;
     [self setNeedsDisplay];
 }
 
@@ -383,14 +385,18 @@ static int gcd(int a, int b) {
      * find out if the image contains enlarged pixels, and if it does, we'll
      * reduce it as well.
      */
+    bool reverse = false;
+    again:;
     int marg_l = INT_MAX, marg_r = INT_MAX;
     int blocksize = -1;
+    int b = 0, w = 0;
     for (int y = 0; y < iheight; y++) {
         bool black = false;
         int len = 0;
         for (int x = 0; x <= iwidth; x++) {
             unsigned char c = x == iwidth ? 255 : rawData[y * istride + x];
-            if (c < 128) {
+            if ((c < 128) ^ reverse) {
+                b++;
                 if (black) {
                     len++;
                 } else {
@@ -400,6 +406,7 @@ static int gcd(int a, int b) {
                     len = 1;
                 }
             } else {
+                w++;
                 if (black) {
                     if (blocksize == -1)
                         blocksize = len;
@@ -416,13 +423,17 @@ static int gcd(int a, int b) {
         if (len < marg_r)
             marg_r = len;
     }
+    if (w < b) {
+        reverse = true;
+        goto again;
+    }
     int marg_t = INT_MAX, marg_b = INT_MAX;
     for (int x = 0; x < width; x++) {
         bool black = false;
         int len = 0;
         for (int y = 0; y <= iheight; y++) {
             unsigned char c = y == iheight ? 255 : rawData[y * istride + x];
-            if (c < 128) {
+            if ((c < 128) ^ reverse) {
                 if (black) {
                     len++;
                 } else {
@@ -467,7 +478,7 @@ static int gcd(int a, int b) {
         for (int x = 0; x < pwidth; x++) {
             int xx = x * blocksize + marg_l;
             unsigned char c = rawData[yy * istride + xx];
-            if (c < 128)
+            if ((c < 128) ^ reverse)
                 bits1[(y + dy) * stride + ((x + dx) >> 5)] |= 1 << ((x + dx) & 31);
             else
                 bits1[(y + dy) * stride + ((x + dx) >> 5)] &= ~(1 << ((x + dx) & 31));
