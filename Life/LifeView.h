@@ -20,6 +20,7 @@
     UILabel *scaleLabel;
     UILabel *speedLabel;
     UILabel *paintLabel;
+    UIButton *kopyButton;
     UIButton *pasteButton;
 }
 
@@ -32,6 +33,7 @@
 @property (nonatomic, retain) IBOutlet UILabel *scaleLabel;
 @property (nonatomic, retain) IBOutlet UILabel *speedLabel;
 @property (nonatomic, retain) IBOutlet UILabel *paintLabel;
+@property (nonatomic, retain) IBOutlet UIButton *kopyButton;
 @property (nonatomic, retain) IBOutlet UIButton *pasteButton;
 
 - (void) awakeFromNib;
@@ -42,6 +44,7 @@
 - (IBAction) stepPressed;
 - (IBAction) restartPressed;
 - (IBAction) paintToggled:(id)sender;
+- (IBAction) copyPressed;
 - (IBAction) pastePressed;
 - (void) undo;
 

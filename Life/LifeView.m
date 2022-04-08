@@ -20,6 +20,7 @@
 @synthesize scaleLabel;
 @synthesize speedLabel;
 @synthesize paintLabel;
+@synthesize kopyButton;
 @synthesize pasteButton;
 
 static unsigned short crc16[] = {
@@ -269,6 +270,7 @@ static void undoDots() {
     scaleLabel.hidden = hidden;
     speedLabel.hidden = hidden;
     paintLabel.hidden = hidden;
+    kopyButton.hidden = hidden;
     pasteButton.hidden = hidden;
     ui_hide_time = hidden ? 0 : time(NULL) + 15;
     [[UIApplication sharedApplication] setStatusBarHidden:hidden];
@@ -359,6 +361,68 @@ static int gcd(int a, int b) {
         a = t;
     }
     return a;
+}
+
+- (IBAction) copyPressed {
+    int marg_l = INT_MAX, marg_r = 0, marg_t = INT_MAX, marg_b = 0;
+    bool empty = true;
+    for (int v = 0; v < height; v++) {
+        for (int h = 0; h < width; h++) {
+            if ((bits1[v * stride + (h >> 5)] >> (h & 31)) & 1) {
+                empty = false;
+                if (h < marg_l)
+                    marg_l = h;
+                if (h > marg_r)
+                    marg_r = h;
+                if (v < marg_t)
+                    marg_t = v;
+                if (v > marg_b)
+                    marg_b = v;
+            }
+        }
+    }
+
+    if (marg_l > 0)
+        marg_l--;
+    marg_r = width - marg_r - 1;
+    if (marg_r > 0)
+        marg_r--;
+    if (marg_t > 0)
+        marg_t--;
+    marg_b = height - marg_b - 1;
+    if (marg_b > 0)
+        marg_b--;
+    int pwidth = width - marg_l - marg_r;
+    int pheight = height - marg_t - marg_b;
+
+    int dstride = ((pwidth << 1) + 2) & ~3;
+    int dgap = dstride - 2 * pwidth;
+
+    unsigned char *data = (unsigned char *) malloc(pheight * dstride * 2);
+    unsigned char *dst = data;
+    for (int v = 0; v < pheight; v++) {
+        uint32_t *src = bits1 + (v + marg_t) * stride;
+        for (int h = 0; h < pwidth; h++) {
+            unsigned char k = ((src[(h + marg_l) >> 5] >> ((h + marg_l) & 31)) & 1) ? 255 : 0;
+            *dst++ = k;
+            *dst++ = k;
+        }
+        for (int i = 0; i < dgap; i++)
+            *dst++ = 255;
+        memcpy(dst, dst - dstride, dstride);
+        dst += dstride;
+    }
+
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceGray();
+    CFDataRef d = CFDataCreateWithBytesNoCopy(NULL, data, pheight * dstride * 2, kCFAllocatorMalloc);
+    CGDataProviderRef provider = CGDataProviderCreateWithCFData(d);
+    CGImageRef cgImg = CGImageCreate(pwidth * 2, pheight * 2, 8, 8, dstride, colorSpace, kCGImageAlphaNone, provider, NULL, false, kCGRenderingIntentDefault);
+    UIImage *img = [UIImage imageWithCGImage:cgImg];
+    [[UIPasteboard generalPasteboard] setImage:img];
+    CGImageRelease(cgImg);
+    CGDataProviderRelease(provider);
+    CFRelease(d);
+    CGColorSpaceRelease(colorSpace);
 }
 
 - (IBAction) pastePressed {
