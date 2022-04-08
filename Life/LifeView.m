@@ -345,6 +345,20 @@ static void undoDots() {
     }
 }
 
+static int gcd(int a, int b) {
+    if (a < b) {
+        int t = a;
+        a = b;
+        b = t;
+    }
+    while (b != 0) {
+        int t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+
 - (IBAction) pastePressed {
     UIPasteboard *pb = [UIPasteboard generalPasteboard];
     UIImage *image = [pb image];
@@ -352,8 +366,8 @@ static void undoDots() {
         return;
 
     CGImageRef imageRef = [image CGImage];
-    NSUInteger iwidth = CGImageGetWidth(imageRef);
-    NSUInteger iheight = CGImageGetHeight(imageRef);
+    int iwidth = (int) CGImageGetWidth(imageRef);
+    int iheight = (int) CGImageGetHeight(imageRef);
     CGColorSpaceRef gray = CGColorSpaceCreateDeviceGray();
     NSUInteger istride = (iwidth + 3) & ~3;
     unsigned char *rawData = (unsigned char *) malloc(iheight * istride);
@@ -369,22 +383,96 @@ static void undoDots() {
      * find out if the image contains enlarged pixels, and if it does, we'll
      * reduce it as well.
      */
+    int marg_l = INT_MAX, marg_r = INT_MAX;
+    int blocksize = -1;
+    for (int y = 0; y < iheight; y++) {
+        bool black = false;
+        int len = 0;
+        for (int x = 0; x <= iwidth; x++) {
+            unsigned char c = x == iwidth ? 255 : rawData[y * istride + x];
+            if (c < 128) {
+                if (black) {
+                    len++;
+                } else {
+                    if (len == x && len < marg_l)
+                        marg_l = len;
+                    black = true;
+                    len = 1;
+                }
+            } else {
+                if (black) {
+                    if (blocksize == -1)
+                        blocksize = len;
+                    else
+                        blocksize = gcd(blocksize, len);
+                    black = false;
+                    len = 1;
+                } else {
+                    len++;
+                }
+            }
+        }
+        len--;
+        if (len < marg_r)
+            marg_r = len;
+    }
+    int marg_t = INT_MAX, marg_b = INT_MAX;
+    for (int x = 0; x < width; x++) {
+        bool black = false;
+        int len = 0;
+        for (int y = 0; y <= iheight; y++) {
+            unsigned char c = y == iheight ? 255 : rawData[y * istride + x];
+            if (c < 128) {
+                if (black) {
+                    len++;
+                } else {
+                    if (len == y && len < marg_t)
+                        marg_t = len;
+                    black = true;
+                    len = 1;
+                }
+            } else {
+                if (black) {
+                    if (blocksize == -1)
+                        blocksize = len;
+                    else
+                        blocksize = gcd(blocksize, len);
+                    black = false;
+                    len = 1;
+                } else {
+                    len++;
+                }
+            }
+        }
+        len--;
+        if (len < marg_b)
+            marg_b = len;
+    }
 
-    if (iwidth > width)
-        iwidth = width;
-    if (iheight > height)
-        iheight = height;
-    int dx = (int) ((width - iwidth) / 2);
-    int dy = (int) ((height - iheight) / 2);
+    if (blocksize == -1)
+        // Image is all white; no action
+        return;
 
-    for (int y = 0; y < iheight; y++)
-        for (int x = 0; x < iwidth; x++) {
-            unsigned char c = rawData[y * istride + x];
+    int pwidth = (iwidth - marg_l - marg_r) / blocksize;
+    int pheight = (iheight - marg_t - marg_b) / blocksize;
+    if (pwidth > width)
+        pwidth = width;
+    if (pheight > height)
+        pheight = height;
+    int dx = (int) ((width - pwidth) / 2);
+    int dy = (int) ((height - pheight) / 2);
+
+    for (int y = 0; y < pheight; y++) {
+        int yy = y * blocksize + marg_t;
+        for (int x = 0; x < pwidth; x++) {
+            int xx = x * blocksize + marg_l;
+            unsigned char c = rawData[yy * istride + xx];
             if (c < 128)
                 bits1[(y + dy) * stride + ((x + dx) >> 5)] |= 1 << ((x + dx) & 31);
             else
                 bits1[(y + dy) * stride + ((x + dx) >> 5)] &= ~(1 << ((x + dx) & 31));
         }
+    }
 
     free(rawData);
     [self setNeedsDisplay];
