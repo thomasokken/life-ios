@@ -222,6 +222,7 @@ static void forgetDots(bool undo) {
     [self addGestureRecognizer:twoFingerPan];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
 
+    [UIApplication sharedApplication].idleTimerDisabled = YES;
     [self performSelectorInBackground:@selector(worker) withObject:nil];
 }
 
@@ -312,6 +313,7 @@ static void forgetDots(bool undo) {
 - (IBAction) stopPressed {
     paused = !paused;
     ui_hide_time = time(NULL) + 15;
+    [UIApplication sharedApplication].idleTimerDisabled = paused;
 }
 
 - (IBAction) stepPressed {
@@ -352,18 +354,12 @@ static void forgetDots(bool undo) {
     CGContextDrawImage(context, CGRectMake(0, 0, iwidth, iheight), imageRef);
     CGContextRelease(context);
 
-    /* This is very primitive: it just takes the grayscale data, maps it
-     * to black and white using thresholding, and pastes it into the buffer.
-     * Before pasting, it should try to detect whether the image has a
-     * structure consistent with large pixels, i.e. is basically a mosaic
-     * of uniform squares or rectangles.
-     * The challenge for today: how to detect such a structure, with no
-     * false positives (that's a fairly safe assumption with Life snapshots;
-     * those will be grainy at the pixel level) but also no false negatives
-     * (those might be an issue if there is additional imagery besides the
-     * Life snapshot, or, more importantly, if the image boundaries don't
-     * coincide with tile boundaries).
+    /* Now we have an 8-bit grayscale pixmap. We'll turn this into monochrome
+     * using simple thresholding, but before we do that, first we'll try to
+     * find out if the image contains enlarged pixels, and if it does, we'll
+     * reduce it as well.
      */
+
     if (iwidth > width)
         iwidth = width;
     if (iheight > height)
