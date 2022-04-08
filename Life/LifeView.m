@@ -394,7 +394,7 @@ static int gcd(int a, int b) {
         bool black = false;
         int len = 0;
         for (int x = 0; x <= iwidth; x++) {
-            unsigned char c = x == iwidth ? 255 : rawData[y * istride + x];
+            unsigned char c = x == iwidth ? reverse ? 0 : 255 : rawData[y * istride + x];
             if ((c < 128) ^ reverse) {
                 b++;
                 if (black) {
@@ -428,11 +428,11 @@ static int gcd(int a, int b) {
         goto again;
     }
     int marg_t = INT_MAX, marg_b = INT_MAX;
-    for (int x = 0; x < width; x++) {
+    for (int x = 0; x < iwidth; x++) {
         bool black = false;
         int len = 0;
         for (int y = 0; y <= iheight; y++) {
-            unsigned char c = y == iheight ? 255 : rawData[y * istride + x];
+            unsigned char c = y == iheight ? reverse ? 0 : 255 : rawData[y * istride + x];
             if ((c < 128) ^ reverse) {
                 if (black) {
                     len++;
