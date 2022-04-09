@@ -401,6 +401,7 @@ static void undoDots() {
     bool movingP = pbits != NULL && !twoFinger;
     if (pan.state == UIGestureRecognizerStateBegan) {
         undoDots();
+        gesturing = true;
         [self setNeedsDisplay];
         if (movingP) {
             px_orig = px;
