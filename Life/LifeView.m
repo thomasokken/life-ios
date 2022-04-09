@@ -117,7 +117,6 @@ static int pwidth, pheight, pstride, px, py, px_orig, py_orig;
                               && orientation == UIInterfaceOrientationLandscapeLeft
                            || oldorientation == UIInterfaceOrientationLandscapeLeft
                               && orientation == UIInterfaceOrientationPortrait;
-            NSLog(@"old=%d new=%d %s", oldorientation, orientation, rotateLeft ? "left" : "right");
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++) {
                     int ox, oy;
