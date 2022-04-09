@@ -78,6 +78,9 @@ static bool paused = false;
 static bool painting = false;
 static CGSize screenSize;
 
+static unsigned char *pbits;
+static int pwidth, pheight, pstride, px, py, px_orig, py_orig;
+
 - (void) setBounds:(CGRect)bounds {
     [super setBounds:bounds];
     if (bounds.size.width != screenSize.width || bounds.size.height != screenSize.height) {
@@ -137,8 +140,7 @@ static CGSize screenSize;
     [self setNeedsDisplay];
 }
 
-static UIPanGestureRecognizer *twoFingerPan;
-static UIPinchGestureRecognizer *pinch;
+static UIPanGestureRecognizer *oneFingerPan;
 
 struct dot {
     int x, y;
@@ -164,7 +166,18 @@ static void rememberDot(int x, int y) {
     lastDraw = d;
 }
 
+static void memoryComplete() {
+    while (undoableDraw != NULL) {
+        struct dot *d = undoableDraw->next;
+        free(undoableDraw);
+        undoableDraw = d;
+    }
+    undoableDraw = lastDraw;
+    lastDraw = NULL;
+}
+
 static void undoDots() {
+    /* Undo last completed pixel drawing sequence */
     struct dot *d = lastDraw;
     while (d != NULL) {
         if (d->set)
@@ -179,12 +192,18 @@ static void undoDots() {
 }
 
 - (void) undo {
-    struct dot *temp = lastDraw;
-    lastDraw = undoableDraw;
-    undoDots();
+    if (pbits != NULL) {
+        /* Undo un-committed Paste */
+        free(pbits);
+        pbits = NULL;
+    } else {
+        struct dot *temp = lastDraw;
+        lastDraw = undoableDraw;
+        undoDots();
+        undoableDraw = NULL;
+        lastDraw = temp;
+    }
     [self setNeedsDisplay];
-    undoableDraw = NULL;
-    lastDraw = temp;
 }
 
 - (void) awakeFromNib {
@@ -221,18 +240,26 @@ static void undoDots() {
 
     [self hideUI];
 
+    /* Tap: toggle UI or finalize Paste */
     UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
     recog.delegate = self;
     [self addGestureRecognizer:recog];
-    pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
+
+    /* Pinch: zoom */
+    UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
     pinch.delegate = self;
     [self addGestureRecognizer:pinch];
-    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
-    pan.delegate = self;
-    [self addGestureRecognizer:pan];
-    twoFingerPan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+
+    /* One finger pan: move pasted bitmap, or draw, or pan */
+    oneFingerPan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    oneFingerPan.delegate = self;
+    [self addGestureRecognizer:oneFingerPan];
+
+    /* Two finger pan: pan */
+    UIPanGestureRecognizer *twoFingerPan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleTwoFingerPan:)];
     twoFingerPan.minimumNumberOfTouches = 2;
     [self addGestureRecognizer:twoFingerPan];
+
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
 
     [UIApplication sharedApplication].idleTimerDisabled = YES;
@@ -250,13 +277,30 @@ static void undoDots() {
     if (touch.view != self)
         return NO;
     if (!painting)
-        return gestureRecognizer != twoFingerPan;
+        return YES;
     else
-        return gestureRecognizer == pinch || gestureRecognizer == twoFingerPan;
+        return pbits != NULL || gestureRecognizer != oneFingerPan;
 }
 
 - (void) handleTap:(UITapGestureRecognizer *)recog {
-    [self setUIVisibility:scaleSlider.isHidden];
+    if (pbits != NULL) {
+        /* Finish paste operation */
+        for (int y = 0; y < pheight; y++)
+            for (int x = 0; x < pwidth; x++)
+                if ((pbits[y * pstride + (x >> 3)] >> (x & 7)) & 1) {
+                    int xx = x + px;
+                    int yy = y + py;
+                    if (xx >= 0 && xx < width && yy >= 0 && yy < height)
+                        bits1[yy * stride + (xx >> 5)] |= (1 << (xx & 31));
+                }
+        free(pbits);
+        pbits = NULL;
+        [self setNeedsDisplay];
+        return;
+    }
+    /* Toggle UI */
+    if (!painting)
+        [self setUIVisibility:scaleSlider.isHidden];
 }
 
 - (void) setUIVisibility:(BOOL)visible {
@@ -310,16 +354,35 @@ static void undoDots() {
 }
 
 - (void) handlePan:(UIPanGestureRecognizer *)pan {
+    [self handlePan2:pan twoFinger:NO];
+}
+
+- (void) handleTwoFingerPan:(UIPanGestureRecognizer *)pan {
+    [self handlePan2:pan twoFinger:YES];
+}
+
+- (void) handlePan2:(UIPanGestureRecognizer *)pan twoFinger:(BOOL)twoFinger {
+    bool movingP = pbits != NULL && !twoFinger;
     if (pan.state == UIGestureRecognizerStateBegan) {
         undoDots();
         [self setNeedsDisplay];
-        offset_x_orig = offset_x;
-        offset_y_orig = offset_y;
+        if (movingP) {
+            px_orig = px;
+            py_orig = py;
+        } else {
+            offset_x_orig = offset_x;
+            offset_y_orig = offset_y;
+        }
     } else if (pan.state == UIGestureRecognizerStateChanged) {
         CGPoint p = [pan translationInView:self];
-        offset_x = offset_x_orig - p.x / pixelScale / zoom;
-        offset_y = offset_y_orig - p.y / pixelScale / zoom;
-        [self pinOffset];
+        if (movingP) {
+            px = px_orig + p.x / pixelScale / zoom;
+            py = py_orig + p.y / pixelScale / zoom;
+        } else {
+            offset_x = offset_x_orig - p.x / pixelScale / zoom;
+            offset_y = offset_y_orig - p.y / pixelScale / zoom;
+            [self pinOffset];
+        }
         [self setNeedsDisplay];
     }
 }
@@ -426,6 +489,8 @@ static int gcd(int a, int b) {
 }
 
 - (IBAction) pastePressed {
+    memoryComplete();
+
     UIPasteboard *pb = [UIPasteboard generalPasteboard];
     UIImage *image = [pb image];
     if (image == nil)
@@ -526,18 +591,18 @@ static int gcd(int a, int b) {
 
     CGContextRelease(context);
 
-    if (blocksize == -1)
+    if (blocksize == -1) {
         // Image is all white; no action
+        free(rawData);
         return;
+    }
 
-    int pwidth = (iwidth - marg_l - marg_r) / blocksize;
-    int pheight = (iheight - marg_t - marg_b) / blocksize;
-    if (pwidth > width)
-        pwidth = width;
-    if (pheight > height)
-        pheight = height;
-    int dx = (int) ((width - pwidth) / 2);
-    int dy = (int) ((height - pheight) / 2);
+    free(pbits);
+    pwidth = (iwidth - marg_l - marg_r) / blocksize;
+    pheight = (iheight - marg_t - marg_b) / blocksize;
+    pstride = (pwidth + 7) >> 3;
+    pbits = (unsigned char *) malloc(pstride * pheight);
+    memset(pbits, 0, pstride * pheight);
 
     for (int y = 0; y < pheight; y++) {
         int yy = y * blocksize + marg_t;
@@ -545,13 +610,14 @@ static int gcd(int a, int b) {
             int xx = x * blocksize + marg_l;
             unsigned char c = rawData[yy * istride + xx];
             if ((c < 128) ^ reverse)
-                bits1[(y + dy) * stride + ((x + dx) >> 5)] |= 1 << ((x + dx) & 31);
-            else
-                bits1[(y + dy) * stride + ((x + dx) >> 5)] &= ~(1 << ((x + dx) & 31));
+                pbits[y * pstride + (x >> 3)] |= 1 << (x & 7);
         }
     }
 
     free(rawData);
+
+    px = (width - pwidth) / 2;
+    py = (height - pheight) / 2;
     [self setNeedsDisplay];
 }
 
@@ -578,28 +644,17 @@ static int paintMode;
 }
 
 - (void) touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    if (painting)
+    if (painting && pbits == NULL)
         [self handleTouchAt:touches first:YES];
     else
         [super touchesBegan:touches withEvent:event];
 }
 
 - (void) touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    if (painting)
+    if (painting && pbits == NULL)
         [self handleTouchAt:touches first:NO];
     else
         [super touchesBegan:touches withEvent:event];
-}
-
-- (void) touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    while (undoableDraw != NULL) {
-        struct dot *d = undoableDraw->next;
-        free(undoableDraw);
-        undoableDraw = d;
-    }
-    undoableDraw = lastDraw;
-    lastDraw = NULL;
-    [super touchesEnded:touches withEvent:event];
 }
 
 - (void) drawRect:(CGRect)rect {
@@ -647,6 +702,17 @@ static int paintMode;
             hh = 0;
         }
         p += gap;
+    }
+
+    if (pbits != NULL) {
+        CGContextSetRGBFillColor(myContext, 1.0, 0.0, 0.0, 1.0);
+        for (int v = 0; v < pheight; v++)
+            for (int h = 0; h < pwidth; h++)
+                if ((pbits[v * pstride + (h >> 3)] >> (h & 7)) & 1) {
+                    r.origin.x = h + px;
+                    r.origin.y = v + py;
+                    CGContextFillRect(myContext, r);
+                }
     }
 
     if (painting && zoom * pixelScale >= 4) {
