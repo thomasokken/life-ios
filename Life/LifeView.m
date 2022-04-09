@@ -138,6 +138,28 @@ static int pwidth, pheight, pstride, px, py, px_orig, py_orig;
             bits2 = (uint32_t *) malloc(size * 4);
             [self setNeedsDisplay];
             return;
+        } else if (painting) {
+            /* Resizing while painting; reserve bitmap as far as possible */
+            free(bits2);
+            bits2 = (uint32_t *) malloc(size * 4);
+            memset(bits2, 0, size * 4);
+            int dx = (width - oldwidth) / 2;
+            int dy = (height - oldheight) / 2;
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++) {
+                    int ox = x - dx;
+                    int oy = y - dy;
+                    if (ox >= 0 && ox < oldwidth && oy >= 0 && oy < oldheight)
+                        if ((bits1[oy * oldstride + (ox >> 5)] >> (ox & 31)) & 1)
+                            bits2[y * stride + (x >> 5)] |= 1 << (x & 31);
+                        else
+                            bits2[y * stride + (x >> 5)] &= ~(1 << (x & 31));
+                }
+            free(bits1);
+            bits1 = bits2;
+            bits2 = (uint32_t *) malloc(size * 4);
+            [self setNeedsDisplay];
+            return;
         } else {
             free(bits1);
             free(bits2);
