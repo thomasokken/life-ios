@@ -22,6 +22,6 @@
 		</dict>
 	</dict>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
-        <false/>
+	<false/>
 </dict>
 </plist>

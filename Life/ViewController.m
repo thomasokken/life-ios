@@ -36,5 +36,9 @@
         [super motionBegan:motion withEvent:event];
 }
 
+- (UIInterfaceOrientationMask) supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskAll;
+}
+
 
 @end

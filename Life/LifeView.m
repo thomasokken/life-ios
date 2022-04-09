@@ -66,6 +66,7 @@ static unsigned short crc16[] = {
 
 static uint32_t *bits1 = NULL, *bits2 = NULL;
 static int width = 0, height = 0, stride;
+static UIInterfaceOrientation orientation;
 static unsigned int history[HISTORY];
 static int repeats;
 static float delay;
@@ -92,17 +93,57 @@ static int pwidth, pheight, pstride, px, py, px_orig, py_orig;
 - (void) restart {
     int size = stride * height;
     if (resized) {
+        int oldwidth = width;
+        int oldheight = height;
+        int oldstride = stride;
+        UIInterfaceOrientation oldorientation = orientation;
+        orientation = [UIApplication sharedApplication].statusBarOrientation;
         resized = false;
         width = self.bounds.size.width / pixelScale;
         height = self.bounds.size.height / pixelScale;
         offset_x = width / 2.0;
         offset_y = height / 2.0;
-        free(bits1);
-        free(bits2);
         stride = (width + 31) >> 5;
         size = stride * height;
-        bits1 = (uint32_t *) malloc(size * 4);
-        bits2 = (uint32_t *) malloc(size * 4);
+        if (width == oldheight && height == oldwidth) {
+            /* Just transpose the old bitmap; no other action */
+            free(bits2);
+            bits2 = (uint32_t *) malloc(size * 4);
+            bool rotateLeft = oldorientation == UIInterfaceOrientationPortrait
+                              && orientation == UIInterfaceOrientationLandscapeRight
+                           || oldorientation == UIInterfaceOrientationLandscapeRight
+                              && orientation == UIInterfaceOrientationPortraitUpsideDown
+                           || oldorientation == UIInterfaceOrientationPortraitUpsideDown
+                              && orientation == UIInterfaceOrientationLandscapeLeft
+                           || oldorientation == UIInterfaceOrientationLandscapeLeft
+                              && orientation == UIInterfaceOrientationPortrait;
+            NSLog(@"old=%d new=%d %s", oldorientation, orientation, rotateLeft ? "left" : "right");
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++) {
+                    int ox, oy;
+                    if (rotateLeft) {
+                        ox = height - y - 1;
+                        oy = x;
+                    } else {
+                        ox = y;
+                        oy = width - x - 1;
+                    }
+                    if ((bits1[oy * oldstride + (ox >> 5)] >> (ox & 31)) & 1)
+                        bits2[y * stride + (x >> 5)] |= 1 << (x & 31);
+                    else
+                        bits2[y * stride + (x >> 5)] &= ~(1 << (x & 31));
+                }
+            free(bits1);
+            bits1 = bits2;
+            bits2 = (uint32_t *) malloc(size * 4);
+            [self setNeedsDisplay];
+            return;
+        } else {
+            free(bits1);
+            free(bits2);
+            bits1 = (uint32_t *) malloc(size * 4);
+            bits2 = (uint32_t *) malloc(size * 4);
+        }
     }
     for (int i = 0; i < size; i++) {
         bits1[i] = (uint32_t) (((random() & 255) << 24)
@@ -164,16 +205,6 @@ static void rememberDot(int x, int y) {
     d->set = (bits1[y * stride + (x >> 5)] & (1 << (x & 31))) != 0;
     d->next = lastDraw;
     lastDraw = d;
-}
-
-static void memoryComplete() {
-    while (undoableDraw != NULL) {
-        struct dot *d = undoableDraw->next;
-        free(undoableDraw);
-        undoableDraw = d;
-    }
-    undoableDraw = lastDraw;
-    lastDraw = NULL;
 }
 
 static void undoDots() {
@@ -243,21 +274,25 @@ static void undoDots() {
     /* Tap: toggle UI or finalize Paste */
     UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
     recog.delegate = self;
+    recog.cancelsTouchesInView = NO;
     [self addGestureRecognizer:recog];
 
     /* Pinch: zoom */
     UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
     pinch.delegate = self;
+    pinch.cancelsTouchesInView = NO;
     [self addGestureRecognizer:pinch];
 
     /* One finger pan: move pasted bitmap, or draw, or pan */
     oneFingerPan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
     oneFingerPan.delegate = self;
+    oneFingerPan.cancelsTouchesInView = NO;
     [self addGestureRecognizer:oneFingerPan];
 
     /* Two finger pan: pan */
     UIPanGestureRecognizer *twoFingerPan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleTwoFingerPan:)];
     twoFingerPan.minimumNumberOfTouches = 2;
+    twoFingerPan.cancelsTouchesInView = NO;
     [self addGestureRecognizer:twoFingerPan];
 
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
@@ -489,8 +524,6 @@ static int gcd(int a, int b) {
 }
 
 - (IBAction) pastePressed {
-    memoryComplete();
-
     UIPasteboard *pb = [UIPasteboard generalPasteboard];
     UIImage *image = [pb image];
     if (image == nil)
@@ -655,6 +688,16 @@ static int paintMode;
         [self handleTouchAt:touches first:NO];
     else
         [super touchesBegan:touches withEvent:event];
+}
+
+- (void) touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    while (undoableDraw != NULL) {
+        struct dot *d = undoableDraw->next;
+        free(undoableDraw);
+        undoableDraw = d;
+    }
+    undoableDraw = lastDraw;
+    lastDraw = NULL;
 }
 
 - (void) drawRect:(CGRect)rect {
