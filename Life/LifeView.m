@@ -78,6 +78,7 @@ static time_t ui_hide_time = 0;
 static bool paused = false;
 static bool painting = false;
 static CGSize screenSize;
+static bool gesturing = false;
 
 static unsigned char *pbits;
 static int pwidth, pheight, pstride, px, py, px_orig, py_orig;
@@ -374,6 +375,7 @@ static void undoDots() {
 - (void) handlePinch:(UIPinchGestureRecognizer *)pinch {
     if (pinch.state == UIGestureRecognizerStateBegan) {
         undoDots();
+        gesturing = true;
         [self setNeedsDisplay];
         zoom_orig = zoom;
     } else if (pinch.state == UIGestureRecognizerStateChanged) {
@@ -676,14 +678,14 @@ static int paintMode;
 }
 
 - (void) touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    if (painting && pbits == NULL)
+    if (painting && pbits == NULL && !gesturing)
         [self handleTouchAt:touches first:YES];
     else
         [super touchesBegan:touches withEvent:event];
 }
 
 - (void) touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    if (painting && pbits == NULL)
+    if (painting && pbits == NULL && !gesturing)
         [self handleTouchAt:touches first:NO];
     else
         [super touchesBegan:touches withEvent:event];
@@ -697,6 +699,7 @@ static int paintMode;
     }
     undoableDraw = lastDraw;
     lastDraw = NULL;
+    gesturing = false;
 }
 
 - (void) drawRect:(CGRect)rect {
