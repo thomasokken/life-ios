@@ -441,16 +441,16 @@ static int gcd(int a, int b) {
                     8, istride, gray, kCGImageAlphaNone);
     CGColorSpaceRelease(gray);
 
+    bool reverse = false;
+    again:
+    memset(rawData, reverse ? 0 : 255, iheight * istride);
     CGContextDrawImage(context, CGRectMake(0, 0, iwidth, iheight), imageRef);
-    CGContextRelease(context);
 
     /* Now we have an 8-bit grayscale pixmap. We'll turn this into monochrome
      * using simple thresholding, but before we do that, first we'll try to
      * find out if the image contains enlarged pixels, and if it does, we'll
      * reduce it as well.
      */
-    bool reverse = false;
-    again:;
     int marg_l = INT_MAX, marg_r = INT_MAX;
     int blocksize = -1;
     int b = 0, w = 0;
@@ -523,6 +523,8 @@ static int gcd(int a, int b) {
         if (len < marg_b)
             marg_b = len;
     }
+
+    CGContextRelease(context);
 
     if (blocksize == -1)
         // Image is all white; no action
