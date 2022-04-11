@@ -444,7 +444,7 @@ static void undoDots() {
 - (IBAction) stopPressed {
     paused = !paused;
     ui_hide_time = time(NULL) + 15;
-    [UIApplication sharedApplication].idleTimerDisabled = paused;
+    [UIApplication sharedApplication].idleTimerDisabled = !paused;
 }
 
 - (IBAction) stepPressed {
