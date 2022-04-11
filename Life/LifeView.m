@@ -136,10 +136,8 @@ static int pwidth, pheight, pstride, px, py, px_orig, py_orig;
             free(bits1);
             bits1 = bits2;
             bits2 = (uint32_t *) malloc(size * 4);
-            [self setNeedsDisplay];
-            return;
-        } else if (painting) {
-            /* Resizing while painting; reserve bitmap as far as possible */
+        } else {
+            /* Preserve bitmap as far as possible */
             free(bits2);
             bits2 = (uint32_t *) malloc(size * 4);
             memset(bits2, 0, size * 4);
@@ -158,23 +156,20 @@ static int pwidth, pheight, pstride, px, py, px_orig, py_orig;
             free(bits1);
             bits1 = bits2;
             bits2 = (uint32_t *) malloc(size * 4);
-            [self setNeedsDisplay];
-            return;
-        } else {
-            free(bits1);
-            free(bits2);
-            bits1 = (uint32_t *) malloc(size * 4);
-            bits2 = (uint32_t *) malloc(size * 4);
         }
+    } else {
+        /* Not resized, so we're here because the pattern has been repeating itself.
+         * Reinitialize with randomness.
+         */
+        for (int i = 0; i < size; i++) {
+            bits1[i] = (uint32_t) (((random() & 255) << 24)
+                        | ((random() & 255) << 16)
+                        | ((random() & 255) << 8)
+                        | (random() & 255));
+        }
+        repeats = PATIENCE;
+        memset(history, 0, HISTORY * sizeof(unsigned int));
     }
-    for (int i = 0; i < size; i++) {
-        bits1[i] = (uint32_t) (((random() & 255) << 24)
-                    | ((random() & 255) << 16)
-                    | ((random() & 255) << 8)
-                    | (random() & 255));
-    }
-    repeats = PATIENCE;
-    memset(history, 0, HISTORY * sizeof(unsigned int));
     [self setNeedsDisplay];
 }
 
