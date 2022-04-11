@@ -215,6 +215,8 @@ static void write_w(FILE *f, uint32_t w) {
     painting = [paintSwitch isOn];
     if (painting)
         paused = true;
+    [[NSUserDefaults standardUserDefaults] setBool:painting forKey:@"painting"];
+    [[NSUserDefaults standardUserDefaults] setBool:paused forKey:@"paused"];
     [self setNeedsDisplay];
 }
 
@@ -346,7 +348,12 @@ static void undoDots() {
         delay--;
     [speedSlider setValue:delay];
 
-    [self hideUI];
+    painting = [[NSUserDefaults standardUserDefaults] boolForKey:@"painting"];
+    paused = [[NSUserDefaults standardUserDefaults] boolForKey:@"paused"];
+
+    paintSwitch.on = painting;
+    if (!painting)
+        [self hideUI];
 
     /* Tap: toggle UI or finalize Paste */
     UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
@@ -503,12 +510,14 @@ static void undoDots() {
 
 - (IBAction) stopPressed {
     paused = !paused;
+    [[NSUserDefaults standardUserDefaults] setBool:paused forKey:@"paused"];
     ui_hide_time = time(NULL) + 15;
     [UIApplication sharedApplication].idleTimerDisabled = !paused;
 }
 
 - (IBAction) stepPressed {
     paused = true;
+    [[NSUserDefaults standardUserDefaults] setBool:paused forKey:@"paused"];
     ui_hide_time = time(NULL) + 15;
     [self work];
     [self setNeedsDisplay];
