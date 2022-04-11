@@ -796,8 +796,10 @@ static int paintMode;
         CGPathCloseSubpath(path);
 
         CGContextSetLineWidth(myContext, 1.0 / zoom / pixelScale);
+        CGContextSetRGBStrokeColor(myContext, 1.0, 1.0, 1.0, 1.0);
+        CGContextAddPath(myContext, path);
+        CGContextDrawPath(myContext, kCGPathStroke);
         CGContextSetRGBStrokeColor(myContext, 0.0, 0.0, 0.0, 1.0);
-        CGContextSetRGBFillColor(myContext, 1.0, 1.0, 1.0, 1.0);
         CGFloat dash[] = { 1.0 / zoom / pixelScale, 1.0 / zoom / pixelScale };
         CGContextSetLineDash(myContext, 0, dash, 2);
         CGContextAddPath(myContext, path);
