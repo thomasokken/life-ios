@@ -79,9 +79,29 @@ static bool paused = false;
 static bool painting = false;
 static CGSize screenSize;
 static bool gesturing = false;
+static char *stateFileName;
 
 static unsigned char *pbits;
 static int pwidth, pheight, pstride, px, py, px_orig, py_orig;
+
+static bool read_w(FILE *f, uint32_t *w) {
+    uint32_t r = 0;
+    for (int p = 0; p < 32; p += 8) {
+        int c = fgetc(f);
+        if (c == EOF)
+            return false;
+        r |= c << p;
+    }
+    *w = r;
+    return true;
+}
+
+static void write_w(FILE *f, uint32_t w) {
+    for (int i = 0; i < 4; i++) {
+        fputc(w, f);
+        w >>= 8;
+    }
+}
 
 - (void) setBounds:(CGRect)bounds {
     [super setBounds:bounds];
@@ -259,6 +279,11 @@ static void undoDots() {
     screenSize = self.bounds.size;
     srandom((unsigned int) time(NULL));
 
+    NSString *sfn = [NSString stringWithFormat:@"%@/Documents/state.bin", NSHomeDirectory()];
+    const char *t = [sfn UTF8String];
+    stateFileName = (char *) malloc(strlen(t) + 1);
+    strcpy(stateFileName, t);
+
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     int n = 0, b = 1, s = (int) [[UIScreen mainScreen] scale];
     while (b < s) {
@@ -276,8 +301,43 @@ static void undoDots() {
         scale--;
     scaleSlider.value = scale;
 
+    FILE *f = fopen(stateFileName, "rb");
+    if (f != NULL) {
+        uint32_t w, h;
+        if (!read_w(f, &w) || !read_w(f, &h))
+            goto done;
+        uint32_t s = (w + 31) >> 5;
+        size_t sz = s * h;
+        bits1 = (uint32_t *) malloc(sz * 4);
+        bits2 = (uint32_t *) malloc(sz * 4);
+        if (bits1 == NULL || bits2 == NULL) {
+            fail:
+            free(bits1);
+            free(bits2);
+            bits1 = bits2 = NULL;
+            goto done;
+        }
+        for (int i = 0; i < sz; i++)
+            if (!read_w(f, bits1 + i))
+                goto fail;
+        width = w;
+        height = h;
+        stride = s;
+        orientation = [UIApplication sharedApplication].statusBarOrientation;
+        resized = false;
+        offset_x = width / 2.0;
+        offset_y = height / 2.0;
+        repeats = PATIENCE;
+        memset(history, 0, HISTORY * sizeof(unsigned int));
+        done:
+        fclose(f);
+    }
+
     pixelScale = (1 << ((int) scaleSlider.value)) / [[UIScreen mainScreen] scale];
-    [self restart];
+    if (resized)
+        [self restart];
+    else
+        [self setNeedsDisplay];
 
     delay = (int) [defaults integerForKey:@"delay"];
     if (delay == 0)
@@ -952,6 +1012,18 @@ static int paintMode;
     struct timespec ts = { d / 1000000000, d % 1000000000 };
     nanosleep(&ts, NULL);
     goto moar;
+}
+
+- (void) enterBackground {
+    FILE *f = fopen(stateFileName, "wb");
+    if (f == NULL)
+        return;
+    write_w(f, width);
+    write_w(f, height);
+    size_t sz = height * stride;
+    for (int i = 0; i < sz; i++)
+        write_w(f, bits1[i]);
+    fclose(f);
 }
 
 @end
