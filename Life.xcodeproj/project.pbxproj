@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		E923447427F9E45200138C3E /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = E923447327F9E45200138C3E /* AppDelegate.m */; };
-		E923447727F9E45200138C3E /* SceneDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = E923447627F9E45200138C3E /* SceneDelegate.m */; };
 		E923447A27F9E45200138C3E /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E923447927F9E45200138C3E /* ViewController.m */; };
 		E923447D27F9E45200138C3E /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E923447B27F9E45200138C3E /* Main.storyboard */; };
 		E923447F27F9E45800138C3E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E923447E27F9E45800138C3E /* Assets.xcassets */; };
@@ -22,8 +21,6 @@
 		E923446F27F9E45200138C3E /* Life.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Life.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E923447227F9E45200138C3E /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		E923447327F9E45200138C3E /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
-		E923447527F9E45200138C3E /* SceneDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SceneDelegate.h; sourceTree = "<group>"; };
-		E923447627F9E45200138C3E /* SceneDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SceneDelegate.m; sourceTree = "<group>"; };
 		E923447827F9E45200138C3E /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
 		E923447927F9E45200138C3E /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
 		E923447C27F9E45200138C3E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -70,8 +67,6 @@
 				E923447327F9E45200138C3E /* AppDelegate.m */,
 				E9244C2227F9E5BC002E81C7 /* LifeView.h */,
 				E9244C2027F9E5A4002E81C7 /* LifeView.m */,
-				E923447527F9E45200138C3E /* SceneDelegate.h */,
-				E923447627F9E45200138C3E /* SceneDelegate.m */,
 				E923447827F9E45200138C3E /* ViewController.h */,
 				E923447927F9E45200138C3E /* ViewController.m */,
 				E923447B27F9E45200138C3E /* Main.storyboard */,
@@ -158,7 +153,6 @@
 				E923447A27F9E45200138C3E /* ViewController.m in Sources */,
 				E923447427F9E45200138C3E /* AppDelegate.m in Sources */,
 				E923448527F9E45800138C3E /* main.m in Sources */,
-				E923447727F9E45200138C3E /* SceneDelegate.m in Sources */,
 				E9244C2127F9E5A4002E81C7 /* LifeView.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -311,6 +305,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -320,7 +315,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.thomasokken.Life;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -340,6 +335,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -349,7 +345,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.thomasokken.Life;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};

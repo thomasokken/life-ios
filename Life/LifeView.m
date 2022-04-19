@@ -1023,7 +1023,7 @@ static int paintMode;
     goto moar;
 }
 
-- (void) enterBackground {
++ (void) enterBackground {
     FILE *f = fopen(stateFileName, "wb");
     if (f == NULL)
         return;

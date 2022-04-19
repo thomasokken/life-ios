@@ -47,7 +47,7 @@
 - (IBAction) copyPressed;
 - (IBAction) pastePressed;
 - (void) undo;
-- (void) enterBackground;
++ (void) enterBackground;
 
 @end
 
