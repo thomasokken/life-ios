@@ -637,78 +637,100 @@ static int gcd(int a, int b) {
      * find out if the image contains enlarged pixels, and if it does, we'll
      * reduce it as well.
      */
-    int marg_l = INT_MAX, marg_r = INT_MAX;
-    int blocksize = -1;
+
     int b = 0, w = 0;
-    for (int y = 0; y < iheight; y++) {
-        bool black = false;
-        int len = 0;
-        for (int x = 0; x <= iwidth; x++) {
-            unsigned char c = x == iwidth ? reverse ? 0 : 255 : rawData[y * istride + x];
-            if ((c < 128) ^ reverse) {
+    int blocksize = -1;
+    int marg_l = iwidth, marg_r = -1;
+    int marg_t = iheight, marg_b = -1;
+
+    /* First, find the dominant color. */
+
+    for (int y = 0; y < iheight; y++)
+        for (int x = 0; x < iwidth; x++)
+            if ((rawData[y * istride + x] < 128) ^ reverse)
                 b++;
-                if (black) {
-                    len++;
-                } else {
-                    if (len == x && len < marg_l)
-                        marg_l = len;
-                    black = true;
-                    len = 1;
-                }
-            } else {
+            else
                 w++;
-                if (black) {
-                    if (blocksize == -1)
-                        blocksize = len;
-                    else
-                        blocksize = gcd(blocksize, len);
-                    black = false;
-                    len = 1;
-                } else {
-                    len++;
-                }
-            }
-        }
-        len--;
-        if (len < marg_r)
-            marg_r = len;
-    }
+    if (w == 0 || b == 0)
+        goto scan_done;
     if (w < b) {
         reverse = true;
         goto again;
     }
-    int marg_t = INT_MAX, marg_b = INT_MAX;
+
+    /* Next, find the margins. */
+
+    for (int y = 0; y < iheight; y++) {
+        for (int x = 0; x < iwidth; x++)
+            if ((rawData[y * istride + x] < 128) ^ reverse) {
+                if (x < marg_l)
+                    marg_l = x;
+                break;
+            }
+        for (int x = iwidth - 1; x >= 0; x--)
+            if ((rawData[y * istride + x] < 128) ^ reverse) {
+                if (x > marg_r)
+                    marg_r = x;
+                break;
+            }
+    }
+    marg_r++;
     for (int x = 0; x < iwidth; x++) {
-        bool black = false;
+        for (int y = 0; y < iheight; y++)
+            if ((rawData[y * istride + x] < 128) ^ reverse) {
+                if (y < marg_t)
+                    marg_t = y;
+                break;
+            }
+        for (int y = iheight - 1; y >= 0; y--)
+            if ((rawData[y * istride + x] < 128) ^ reverse) {
+                if (y > marg_b)
+                    marg_b = y;
+                break;
+            }
+    }
+    marg_b++;
+
+    /* Lastly, find the scale. */
+
+    for (int y = marg_t; y <= marg_b; y++) {
+        bool lc = false;
         int len = 0;
-        for (int y = 0; y <= iheight; y++) {
-            unsigned char c = y == iheight ? reverse ? 0 : 255 : rawData[y * istride + x];
-            if ((c < 128) ^ reverse) {
-                if (black) {
-                    len++;
-                } else {
-                    if (len == y && len < marg_t)
-                        marg_t = len;
-                    black = true;
-                    len = 1;
-                }
+        for (int x = marg_l; x <= marg_r; x++) {
+            bool c = x == marg_r ? false : (rawData[y * istride + x] < 128) ^ reverse;
+            if (c == lc) {
+                len++;
             } else {
-                if (black) {
+                if (len > 0)
                     if (blocksize == -1)
                         blocksize = len;
                     else
                         blocksize = gcd(blocksize, len);
-                    black = false;
-                    len = 1;
-                } else {
-                    len++;
-                }
+                lc = c;
+                len = 1;
             }
         }
-        len--;
-        if (len < marg_b)
-            marg_b = len;
     }
+    for (int x = marg_l; x <= marg_r; x++) {
+        bool lc = false;
+        int len = 0;
+        for (int y = marg_t; y <= marg_b; y++) {
+            bool c = y == marg_b ? false : (rawData[y * istride + x] < 128) ^ reverse;
+            if (c == lc) {
+                len++;
+            } else {
+                if (len > 0)
+                    if (blocksize == -1)
+                        blocksize = len;
+                    else
+                        blocksize = gcd(blocksize, len);
+                lc = c;
+                len = 1;
+            }
+        }
+    }
+
+    scan_done:
 
     CGContextRelease(context);
 
@@ -719,8 +741,8 @@ static int gcd(int a, int b) {
     }
 
     free(pbits);
-    pwidth = (iwidth - marg_l - marg_r) / blocksize;
-    pheight = (iheight - marg_t - marg_b) / blocksize;
+    pwidth = (marg_r - marg_l) / blocksize;
+    pheight = (marg_b - marg_t) / blocksize;
     pstride = (pwidth + 7) >> 3;
     pbits = (unsigned char *) malloc(pstride * pheight);
     memset(pbits, 0, pstride * pheight);
