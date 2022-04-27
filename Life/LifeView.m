@@ -825,13 +825,19 @@ static int paintMode;
     if (y2 > height)
         y2 = height;
 
+    bool dark = false;
+    if (@available(iOS 12.0, *)) {
+        if (UIScreen.mainScreen.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark)
+            dark = true;
+    }
+
     CGContextRef myContext = UIGraphicsGetCurrentContext();
     CGContextTranslateCTM(myContext, self.bounds.size.width / 2, self.bounds.size.height / 2);
     CGContextScaleCTM(myContext, zoom * pixelScale, zoom * pixelScale);
     CGContextTranslateCTM(myContext, -offset_x, -offset_y);
-    CGContextSetRGBFillColor(myContext, 1.0, 1.0, 1.0, 1.0);
+    CGContextSetRGBFillColor(myContext, !dark, !dark, !dark, 1.0);
     CGContextFillRect(myContext, [self bounds]);
-    CGContextSetRGBFillColor(myContext, 0.0, 0.0, 0.0, 1.0);
+    CGContextSetRGBFillColor(myContext, dark, dark, dark, 1.0);
     CGRect r;
     r.size.width = r.size.height = 1;
 
@@ -882,10 +888,10 @@ static int paintMode;
         CGPathCloseSubpath(path);
 
         CGContextSetLineWidth(myContext, 1.0 / zoom / pixelScale);
-        CGContextSetRGBStrokeColor(myContext, 1.0, 1.0, 1.0, 1.0);
+        CGContextSetRGBFillColor(myContext, !dark, !dark, !dark, 1.0);
         CGContextAddPath(myContext, path);
         CGContextDrawPath(myContext, kCGPathStroke);
-        CGContextSetRGBStrokeColor(myContext, 0.0, 0.0, 0.0, 1.0);
+        CGContextSetRGBStrokeColor(myContext, dark, dark, dark, 1.0);
         CGFloat dash[] = { 1.0 / zoom / pixelScale, 1.0 / zoom / pixelScale };
         CGContextSetLineDash(myContext, 0, dash, 2);
         CGContextAddPath(myContext, path);
