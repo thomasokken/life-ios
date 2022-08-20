@@ -299,6 +299,7 @@
 				DEVELOPMENT_TEAM = F4D88K2P5W;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Life/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Life II";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -329,6 +330,7 @@
 				DEVELOPMENT_TEAM = F4D88K2P5W;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Life/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Life II";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
