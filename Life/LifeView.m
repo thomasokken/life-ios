@@ -129,7 +129,7 @@ static void write_w(FILE *f, uint32_t w) {
         if (width == oldheight && height == oldwidth) {
             /* Just transpose the old bitmap; no other action */
             free(bits2);
-            bits2 = (uint32_t *) malloc(size * 4);
+            bits2 = (uint32_t *) malloc(size * 4 + 4);
             bool rotateLeft = oldorientation == UIInterfaceOrientationPortrait
                               && orientation == UIInterfaceOrientationLandscapeRight
                            || oldorientation == UIInterfaceOrientationLandscapeRight
@@ -155,11 +155,11 @@ static void write_w(FILE *f, uint32_t w) {
                 }
             free(bits1);
             bits1 = bits2;
-            bits2 = (uint32_t *) malloc(size * 4);
+            bits2 = (uint32_t *) malloc(size * 4 + 4);
         } else {
             /* Preserve bitmap as far as possible */
             free(bits2);
-            bits2 = (uint32_t *) malloc(size * 4);
+            bits2 = (uint32_t *) malloc(size * 4 + 4);
             memset(bits2, 0, size * 4);
             int dx = (width - oldwidth) / 2;
             int dy = (height - oldheight) / 2;
@@ -175,7 +175,7 @@ static void write_w(FILE *f, uint32_t w) {
                 }
             free(bits1);
             bits1 = bits2;
-            bits2 = (uint32_t *) malloc(size * 4);
+            bits2 = (uint32_t *) malloc(size * 4 + 4);
         }
     } else {
         /* Not resized, so we're here because the pattern has been repeating itself.
@@ -310,8 +310,8 @@ static void undoDots() {
             goto done;
         uint32_t s = (w + 31) >> 5;
         size_t sz = s * h;
-        bits1 = (uint32_t *) malloc(sz * 4);
-        bits2 = (uint32_t *) malloc(sz * 4);
+        bits1 = (uint32_t *) malloc(sz * 4 + 4);
+        bits2 = (uint32_t *) malloc(sz * 4 + 4);
         if (bits1 == NULL || bits2 == NULL) {
             fail:
             free(bits1);
@@ -379,13 +379,12 @@ static void undoDots() {
     twoFingerPan.cancelsTouchesInView = NO;
     [self addGestureRecognizer:twoFingerPan];
 
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
-
     [UIApplication sharedApplication].idleTimerDisabled = YES;
     [self performSelectorInBackground:@selector(worker) withObject:nil];
 }
 
-- (void) orientationChanged:(NSNotification *)notification{
+- (void) layoutSubviews {
+    [super layoutSubviews];
     if (self.bounds.size.width != screenSize.width || self.bounds.size.height != screenSize.height) {
         screenSize = self.bounds.size;
         resized = true;
@@ -584,7 +583,7 @@ static int gcd(int a, int b) {
     int dstride = ((pwidth << 1) + 2) & ~3;
     int dgap = dstride - 2 * pwidth;
 
-    unsigned char *data = (unsigned char *) malloc(pheight * dstride * 2);
+    unsigned char *data = (unsigned char *) malloc(pheight * dstride * 2 + 4);
     unsigned char *dst = data;
     for (int v = 0; v < pheight; v++) {
         uint32_t *src = bits1 + (v + marg_t) * stride;
@@ -622,7 +621,7 @@ static int gcd(int a, int b) {
     int iheight = (int) CGImageGetHeight(imageRef);
     CGColorSpaceRef gray = CGColorSpaceCreateDeviceGray();
     NSUInteger istride = (iwidth + 3) & ~3;
-    unsigned char *rawData = (unsigned char *) malloc(iheight * istride);
+    unsigned char *rawData = (unsigned char *) malloc(iheight * istride + 4);
     CGContextRef context = CGBitmapContextCreate(rawData, iwidth, iheight,
                     8, istride, gray, kCGImageAlphaNone);
     CGColorSpaceRelease(gray);
@@ -744,7 +743,7 @@ static int gcd(int a, int b) {
     pwidth = (marg_r - marg_l) / blocksize;
     pheight = (marg_b - marg_t) / blocksize;
     pstride = (pwidth + 7) >> 3;
-    pbits = (unsigned char *) malloc(pstride * pheight);
+    pbits = (unsigned char *) malloc(pstride * pheight + 4);
     memset(pbits, 0, pstride * pheight);
 
     for (int y = 0; y < pheight; y++) {
