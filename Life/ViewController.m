@@ -40,5 +40,9 @@
     return UIInterfaceOrientationMaskAll;
 }
 
+- (BOOL) prefersHomeIndicatorAutoHidden {
+    return YES;
+}
+
 
 @end
